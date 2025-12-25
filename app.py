@@ -5,6 +5,8 @@ from flask import Flask, render_template, redirect, url_for, flash, request, abo
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
+# Importamos 'or_' para consultas complejas de búsqueda
+from sqlalchemy import or_
 
 # Importaciones locales
 from db import db
@@ -17,14 +19,12 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'tu_clave_secreta_aqui'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///db.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 # Límite de 16MB para subidas
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 
 
-# Configuración robusta de carpetas (Windows/Linux/Mac)
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'static', 'img')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# Inicialización de extensiones
 db.init_app(app)
 bcrypt = Bcrypt(app)
 login_manager = LoginManager(app)
@@ -34,19 +34,14 @@ app.register_blueprint(workers_bp)
 
 @login_manager.user_loader
 def load_user(user_id):
-    # db.session.get es el método moderno para SQLAlchemy 2.0
     return db.session.get(User, int(user_id))
 
 def save_picture(form_picture):
-    """Guarda la imagen con un nombre aleatorio para evitar conflictos"""
     random_hex = secrets.token_hex(8)
     _, f_ext = os.path.splitext(form_picture.filename)
     picture_fn = random_hex + f_ext
     picture_path = os.path.join(app.config['UPLOAD_FOLDER'], picture_fn)
-    
-    # Crear directorio si no existe
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-    
     form_picture.save(picture_path)
     return picture_fn
 
@@ -79,7 +74,6 @@ def login():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    # Si un usuario ya está logueado y NO es admin, lo mandamos al home
     if current_user.is_authenticated and current_user.role not in ['superuser', 'admin']:
         return redirect(url_for('home'))
 
@@ -124,7 +118,6 @@ def register():
         db.session.add(new_user)
         db.session.commit()
         
-        # Si quien crea es admin/superuser, no lo logueamos como el nuevo, solo notificamos
         if current_user.is_authenticated and current_user.role in ['superuser', 'admin']:
             flash(f'Usuario {email} creado exitosamente.', 'success')
             return redirect(url_for('dashboard'))
@@ -143,7 +136,6 @@ def perfil():
 @login_required
 def editar_perfil():
     if request.method == 'POST':
-        # Procesar Imagen
         if 'avatar' in request.files:
             file = request.files['avatar']
             if file and file.filename != '':
@@ -154,7 +146,6 @@ def editar_perfil():
                     print(f"Error subiendo imagen: {e}")
                     flash(f'Error al subir imagen: {str(e)}', 'danger')
 
-        # Procesar Texto
         if current_user.user_type == 'Persona':
             current_user.nombre = request.form.get('nombre')
             current_user.primer_apellido = request.form.get('primer_apellido')
@@ -216,17 +207,47 @@ def delete_account():
     flash('Tu cuenta ha sido eliminada.', 'info')
     return redirect(url_for('home'))
 
+# --- RUTA DASHBOARD CON BÚSQUEDA Y PAGINACIÓN ---
 @app.route('/dashboard')
 @login_required
 def dashboard():
     if current_user.role not in ['superuser', 'admin']:
         abort(403)
         
-    users = User.query.all()
+    # Parámetros de URL
+    page = request.args.get('page', 1, type=int)
+    search_query = request.args.get('q', '', type=str)
+    
+    query = User.query
+
+    # Lógica de Búsqueda
+    if search_query:
+        search_filter = f"%{search_query}%"
+        query = query.filter(or_(
+            User.nombre.ilike(search_filter),
+            User.primer_apellido.ilike(search_filter),
+            User.segundo_apellido.ilike(search_filter),
+            User.nombre_empresa.ilike(search_filter),
+            User.email.ilike(search_filter),
+            User.role.ilike(search_filter),
+            User.telefono.ilike(search_filter),
+            User.telefono_fijo.ilike(search_filter),
+            User.movil.ilike(search_filter)
+        ))
+    
+    # Paginación (10 items por página)
+    pagination = query.paginate(page=page, per_page=10, error_out=False)
+    users = pagination.items
+    
     total_users = User.query.count()
     total_workers = 0 
     
-    return render_template('dashboard.html', users=users, total_users=total_users, total_workers=total_workers)
+    return render_template('dashboard.html', 
+                           users=users, 
+                           pagination=pagination, 
+                           search_query=search_query,
+                           total_users=total_users, 
+                           total_workers=total_workers)
 
 @app.route('/logout')
 @login_required
@@ -239,7 +260,6 @@ def logout():
 @app.route('/admin/delete_user/<int:id>', methods=['GET', 'POST'])
 @login_required
 def delete_user_admin(id):
-    # Solo Superusuarios pueden eliminar
     if current_user.role != 'superuser':
         flash('Solo los Superusuarios pueden eliminar cuentas.', 'danger')
         return redirect(url_for('dashboard'))
@@ -261,7 +281,6 @@ def delete_user_admin(id):
     flash('Usuario eliminado exitosamente.', 'success')
     return redirect(url_for('dashboard'))
 
-# Ruta para actualizar Rol (Ya existente)
 @app.route('/admin/update_role/<int:id>', methods=['POST'])
 @login_required
 def update_role(id):
@@ -284,7 +303,6 @@ def update_role(id):
         
     return redirect(url_for('dashboard'))
 
-# NUEVA RUTA: Editar Usuario (Admin)
 @app.route('/admin/edit_user/<int:id>', methods=['GET', 'POST'])
 @login_required
 def edit_user_admin(id):
@@ -298,7 +316,6 @@ def edit_user_admin(id):
         return redirect(url_for('dashboard'))
         
     if request.method == 'POST':
-        # Edición administrativa básica
         if user.user_type == 'Persona':
             user.nombre = request.form.get('nombre')
             user.primer_apellido = request.form.get('primer_apellido')
@@ -308,8 +325,6 @@ def edit_user_admin(id):
             user.contacto = request.form.get('contacto')
             
         user.email = request.form.get('email')
-        # Nota: Cambiar contraseña de otro usuario requiere más lógica de seguridad,
-        # aquí permitimos editar datos básicos.
         
         try:
             db.session.commit()

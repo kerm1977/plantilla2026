@@ -4,8 +4,6 @@
 {% block content %}
 <style>
     /* Lógica de visualización Responsiva */
-    
-    /* Por defecto (Desktop) mostramos tabla y ocultamos tarjetas */
     .desktop-view { display: block; }
     .mobile-view { display: none; }
 
@@ -14,7 +12,6 @@
         .desktop-view { display: none !important; }
         .mobile-view { display: block !important; }
         
-        /* Ajustes visuales para las tarjetas móviles */
         .user-card {
             border-left: 5px solid var(--bs-warning);
             margin-bottom: 1rem;
@@ -26,6 +23,126 @@
         }
     }
 </style>
+
+<script>
+    /* ----------------------------------------------------
+       Lógica de Seguridad con Modal Bootstrap 
+       ---------------------------------------------------- */
+    let pendingForm = null;
+    let currentStep = 0;
+
+    function openSecurityModal(form) {
+        pendingForm = form;
+        currentStep = 1;
+        
+        // Elementos del DOM
+        const header = document.getElementById('securityModalHeader');
+        const title = document.getElementById('securityModalTitle');
+        const body = document.getElementById('securityModalBody');
+        const btn = document.getElementById('confirmBtn');
+        const icon = document.getElementById('securityIcon');
+        
+        // Configuración Paso 1 (Advertencia)
+        header.className = 'modal-header bg-warning text-dark border-0';
+        title.innerText = 'ALERTA DE SEGURIDAD';
+        icon.className = 'bi bi-exclamation-triangle-fill display-1 text-warning mb-3';
+        body.innerHTML = '¿Estás completamente seguro de que sabes lo que estás haciendo?<br><br>Asignar el rol de <strong>SUPERUSUARIO</strong> otorga control total sobre el sistema.';
+        
+        btn.className = 'btn btn-dark px-4 fw-bold';
+        btn.innerText = 'Entiendo, Continuar';
+        btn.onclick = nextStep;
+
+        // Mostrar Modal
+        const modal = new bootstrap.Modal(document.getElementById('securityModal'));
+        modal.show();
+    }
+
+    // Avanza al Paso 2 o Envía el formulario
+    function nextStep() {
+        if (currentStep === 1) {
+            // Configuración Paso 2 (Peligro Final)
+            currentStep = 2;
+            const header = document.getElementById('securityModalHeader');
+            const title = document.getElementById('securityModalTitle');
+            const body = document.getElementById('securityModalBody');
+            const btn = document.getElementById('confirmBtn');
+            const icon = document.getElementById('securityIcon');
+
+            header.className = 'modal-header bg-danger text-white border-0';
+            title.innerText = 'CONFIRMACIÓN FINAL';
+            icon.className = 'bi bi-stop-circle-fill display-1 text-danger mb-3';
+            body.innerHTML = '<strong>Esta acción es crítica.</strong><br><br>¿Deseas proseguir de todas maneras?';
+            
+            btn.className = 'btn btn-danger px-4 fw-bold';
+            btn.innerText = 'Sí, Asignar Rol';
+        } else if (currentStep === 2) {
+            // Enviar formulario real
+            if (pendingForm) pendingForm.submit();
+        }
+    }
+
+    // Cancelar/Cerrar: Recargar para revertir la selección visual del select
+    function cancelAction() {
+        location.reload();
+    }
+
+    // Handler para Desktop (onchange)
+    function checkRoleChange(selectElement) {
+        if (selectElement.value === 'superuser') {
+            openSecurityModal(selectElement.form);
+        } else {
+            selectElement.form.submit();
+        }
+    }
+
+    // Handler para Móvil (onsubmit)
+    function checkRoleSubmit(event, form) {
+        const select = form.querySelector('select[name="role"]');
+        if (select.value === 'superuser') {
+            event.preventDefault(); // Detener envío inmediato
+            openSecurityModal(form);
+            return false;
+        }
+        return true;
+    }
+
+    /* ----------------------------------------------------
+       Lógica de Búsqueda Instantánea (Client-Side JS Puro)
+       Filtra los elementos visibles sin recargar la página.
+       ---------------------------------------------------- */
+    document.addEventListener("DOMContentLoaded", function() {
+        const searchInput = document.querySelector('input[name="q"]');
+        
+        if (searchInput) {
+            // Restaurar foco si la página viene de una recarga del servidor
+            if (searchInput.value.length > 0) {
+                searchInput.focus();
+                // Mueve el cursor al final del texto
+                searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+            }
+
+            // Escuchar cada tecla para filtrar INSTANTÁNEAMENTE
+            searchInput.addEventListener('input', function() {
+                const filter = this.value.toLowerCase();
+                
+                // 1. Filtrar Tabla de Escritorio
+                const rows = document.querySelectorAll('.desktop-view tbody tr');
+                rows.forEach(row => {
+                    const text = row.textContent.toLowerCase();
+                    // Si el texto de la fila incluye el filtro, mostrar; si no, ocultar
+                    row.style.display = text.includes(filter) ? '' : 'none';
+                });
+
+                // 2. Filtrar Tarjetas Móviles
+                const cards = document.querySelectorAll('.mobile-view .user-card');
+                cards.forEach(card => {
+                    const text = card.textContent.toLowerCase();
+                    card.style.display = text.includes(filter) ? '' : 'none';
+                });
+            });
+        }
+    });
+</script>
 
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">Dashboard Administrativo</h1>
@@ -58,6 +175,20 @@
 
 <h3 class="mb-3">Gestión de Usuarios</h3>
 
+<!-- BUSCADOR AUTOMÁTICO -->
+<!-- Se agrega ID 'searchForm' para control JS -->
+<form id="searchForm" method="GET" action="{{ url_for('dashboard') }}" class="mb-4">
+    <div class="input-group input-group-lg shadow-sm">
+        <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+        <input type="text" name="q" class="form-control border-start-0 ps-0" placeholder="Buscar por Nombre, Empresa, Email, Rol o Teléfono..." value="{{ search_query }}">
+        <!-- El botón sigue funcionando como fallback -->
+        <button class="btn btn-primary px-4" type="submit">Buscar</button>
+        {% if search_query %}
+            <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary px-3" title="Limpiar"><i class="bi bi-x-lg"></i></a>
+        {% endif %}
+    </div>
+</form>
+
 <!-- =========================
      VISTA DE ESCRITORIO (Tabla) > 768px
      ========================= -->
@@ -79,7 +210,7 @@
                 <td>{{ user.id }}</td>
                 <td>
                     <div class="d-flex align-items-center">
-                        <!-- CORRECCIÓN: Imagen por defecto elegante si falla la carga -->
+                        <!-- Imagen por defecto elegante si falla la carga -->
                         <img src="{{ url_for('static', filename='img/' + user.avatar) }}" 
                              class="rounded-circle me-2 border" 
                              style="width: 40px; height: 40px; object-fit: cover;"
@@ -97,7 +228,7 @@
                 <td>
                     {% if current_user.role == 'superuser' and user.id != current_user.id %}
                     <form action="{{ url_for('update_role', id=user.id) }}" method="POST" class="d-flex">
-                        <select name="role" class="form-select form-select-sm me-1" onchange="this.form.submit()">
+                        <select name="role" class="form-select form-select-sm me-1" onchange="checkRoleChange(this)">
                             <option value="regular" {% if user.role == 'regular' %}selected{% endif %}>Regular</option>
                             <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
                             <option value="superuser" {% if user.role == 'superuser' %}selected{% endif %}>Superuser</option>
@@ -131,6 +262,10 @@
                     </div>
                 </td>
             </tr>
+            {% else %}
+            <tr>
+                <td colspan="6" class="text-center py-4 text-muted">No se encontraron resultados para tu búsqueda.</td>
+            </tr>
             {% endfor %}
         </tbody>
     </table>
@@ -162,7 +297,6 @@
         </div>
         <div class="card-body">
             <div class="d-flex align-items-center mb-3">
-                <!-- CORRECCIÓN: Imagen por defecto elegante si falla la carga -->
                 <img src="{{ url_for('static', filename='img/' + user.avatar) }}" 
                      class="rounded-circle me-3 border" 
                      style="width: 60px; height: 60px; object-fit: cover;"
@@ -180,7 +314,7 @@
             <div class="mb-3">
                 <strong>Rol Actual:</strong>
                 {% if current_user.role == 'superuser' and user.id != current_user.id %}
-                    <form action="{{ url_for('update_role', id=user.id) }}" method="POST" class="mt-2">
+                    <form action="{{ url_for('update_role', id=user.id) }}" method="POST" class="mt-2" onsubmit="return checkRoleSubmit(event, this)">
                         <div class="input-group">
                             <select name="role" class="form-select">
                                 <option value="regular" {% if user.role == 'regular' %}selected{% endif %}>Regular</option>
@@ -198,11 +332,64 @@
             </div>
         </div>
     </div>
+    {% else %}
+    <div class="alert alert-info text-center">No se encontraron resultados para tu búsqueda.</div>
     {% endfor %}
 </div>
+
+<!-- =========================
+     PAGINACIÓN
+     ========================= -->
+{% if pagination.pages > 1 %}
+<nav aria-label="Navegación de páginas" class="mt-4">
+  <ul class="pagination justify-content-center">
+    <!-- Botón Anterior -->
+    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+      <a class="page-link" href="{{ url_for('dashboard', page=pagination.prev_num, q=search_query) }}" tabindex="-1" aria-disabled="true">Anterior</a>
+    </li>
+    
+    <!-- Números de Página -->
+    {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+      {% if page_num %}
+        <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+          <a class="page-link" href="{{ url_for('dashboard', page=page_num, q=search_query) }}">{{ page_num }}</a>
+        </li>
+      {% else %}
+         <li class="page-item disabled"><span class="page-link">...</span></li>
+      {% endif %}
+    {% endfor %}
+
+    <!-- Botón Siguiente -->
+    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+      <a class="page-link" href="{{ url_for('dashboard', page=pagination.next_num, q=search_query) }}">Siguiente</a>
+    </li>
+  </ul>
+</nav>
+{% endif %}
 
 <div class="mt-4 mb-5">
     <h4>Acciones Rápidas</h4>
     <a href="#" class="btn btn-outline-warning text-dark">Comunicarse con Colaborador</a>
+</div>
+
+<!-- =========================
+     MODAL DE SEGURIDAD (Bootstrap)
+     ========================= -->
+<div class="modal fade" id="securityModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content text-center shadow-lg border-0">
+            <div id="securityModalHeader" class="modal-header justify-content-center">
+                <h5 class="modal-title fw-bold" id="securityModalTitle">ALERTA DE SEGURIDAD</h5>
+            </div>
+            <div class="modal-body p-4">
+                <div id="securityIcon" class="mb-3"></div>
+                <p id="securityModalBody" class="fs-5 mb-0"></p>
+            </div>
+            <div class="modal-footer justify-content-center border-0 pb-4">
+                <button type="button" class="btn btn-outline-secondary px-4 rounded-pill" data-bs-dismiss="modal" onclick="cancelAction()">Cancelar</button>
+                <button type="button" id="confirmBtn" class="btn btn-dark px-4 rounded-pill">Continuar</button>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
