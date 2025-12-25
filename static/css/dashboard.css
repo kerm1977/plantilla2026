@@ -1,0 +1,35 @@
+/* dashboard.css - Estilos para panel administrativo */
+
+.dashboard-title {
+    color: #333;
+    border-bottom: 2px solid var(--main-warning);
+    padding-bottom: 10px;
+}
+
+.card-stat {
+    border: none;
+    border-radius: 10px;
+    transition: transform 0.2s;
+}
+
+.card-stat:hover {
+    transform: translateY(-5px);
+}
+
+.stat-header {
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+}
+
+/* Específico para tarjeta amarilla */
+.bg-warning-custom {
+    background-color: var(--main-warning) !important;
+    color: #212529;
+}
+
+.action-btn {
+    border-width: 2px;
+    font-weight: 600;
+}

@@ -1,0 +1,142 @@
+<!-- perfil.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- Estilo de seguridad y corrección de transparencia -->
+<style>
+    .profile-card:hover {
+        transform: none !important;
+    }
+
+    /* FIX: Permitir transparencia en imágenes PNG manteniendo el borde */
+    .avatar-container {
+        width: 100px; /* REDUCIDO: Tamaño más pequeño para el avatar */
+        height: 100px; /* REDUCIDO: Tamaño más pequeño para el avatar */
+        background-color: transparent !important; /* Quita el fondo blanco sólido */
+        border: 4px solid #fff; /* Crea el anillo blanco como borde real (ligeramente más fino) */
+        padding: 0 !important; /* Elimina el relleno que actuaba como fondo */
+        border-radius: 50%; /* Asegura la forma circular */
+        overflow: hidden; /* Recorta cualquier esquina cuadrada de la imagen */
+        
+        /* Ajuste para mantener el centrado vertical si está flotando (override opcional) */
+        bottom: -50px; 
+    }
+    
+    /* Asegura que la imagen llene el contenedor correctamente */
+    .profile-avatar {
+        background-color: transparent; 
+        width: 100%;
+        height: 100%;
+    }
+</style>
+
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        
+        <div class="card profile-card shadow-lg border-0">
+            
+            <div class="card-header bg-warning profile-header text-center border-0">
+                <div class="avatar-container mx-auto">
+                    <!-- Solo mostramos la imagen, no se edita aquí -->
+                    <img src="{{ url_for('static', filename='img/' + current_user.avatar) }}" 
+                         alt="Avatar" 
+                         class="profile-avatar"
+                         onerror="this.onerror=null;this.src='https://via.placeholder.com/150';">
+                </div>
+            </div>
+
+            <div class="card-body pt-5 text-center">
+                <!-- Ajuste de margen superior para compensar el avatar más pequeño si es necesario -->
+                <h3 class="mt-4 mb-1">{{ current_user.nombre if current_user.user_type == 'Persona' else current_user.nombre_empresa }}</h3>
+                <span class="badge bg-secondary mb-4">{{ current_user.user_type }}</span>
+
+                <div class="text-start px-md-4">
+                    <div class="info-group">
+                        <label class="text-muted small fw-bold text-uppercase">Correo Electrónico</label>
+                        <p class="fs-6">{{ current_user.email }}</p>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="info-group">
+                                <label class="text-muted small fw-bold text-uppercase">Whatsapp</label>
+                                <p class="fs-6">{{ current_user.whatsapp if current_user.whatsapp else 'No registrado' }}</p>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="info-group">
+                                <label class="text-muted small fw-bold text-uppercase">Teléfono</label>
+                                <p class="fs-6">
+                                    {% if current_user.user_type == 'Persona' %}
+                                        {{ current_user.telefono }}
+                                    {% else %}
+                                        {{ current_user.telefono_fijo if current_user.telefono_fijo else current_user.movil }}
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if current_user.user_type == 'Empresa' %}
+                    <div class="info-group">
+                        <label class="text-muted small fw-bold text-uppercase">Contacto / Encargado</label>
+                        <p class="fs-6">{{ current_user.encargado }}</p>
+                    </div>
+                    <div class="info-group">
+                        <label class="text-muted small fw-bold text-uppercase">Dirección</label>
+                        <p class="fs-6">{{ current_user.direccion }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <hr class="my-4">
+
+                <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                    <!-- ESTE BOTÓN LLEVA A LA PÁGINA DE EDICIÓN -->
+                    <a href="{{ url_for('editar_perfil') }}" class="btn btn-outline-dark px-4 rounded-pill">
+                        <i class="bi bi-pencil-square"></i> Editar Información
+                    </a>
+                    
+                    <button type="button" class="btn btn-warning px-4 rounded-pill fw-bold" data-bs-toggle="modal" data-bs-target="#passwordModal">
+                        <i class="bi bi-key"></i> Cambiar Contraseña
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Modal Cambiar Contraseña -->
+<div class="modal fade" id="passwordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-warning border-0">
+                <h5 class="modal-title fw-bold">Cambiar Contraseña</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <!-- Action apunta explícitamente a cambiar_password -->
+            <form action="{{ url_for('cambiar_password') }}" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Contraseña Actual</label>
+                        <input type="password" name="current_password" class="form-control bg-light" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Nueva Contraseña</label>
+                        <input type="password" name="new_password" class="form-control bg-light" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Repetir Contraseña</label>
+                        <input type="password" name="confirm_new_password" class="form-control bg-light" required>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-link text-muted text-decoration-none" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-dark px-4 rounded-pill">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

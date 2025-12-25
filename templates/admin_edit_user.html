@@ -1,0 +1,98 @@
+<!-- admin_edit_user.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow border-0">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Editar Usuario (Modo Superusuario)</h4>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST">
+                    
+                    <!-- Sección General -->
+                    <h5 class="text-muted mb-3 border-bottom pb-2">Información de Cuenta</h5>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Email</label>
+                            <input type="email" name="email" class="form-control" value="{{ user.email }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Whatsapp</label>
+                            <input type="text" name="whatsapp" class="form-control" value="{{ user.whatsapp }}">
+                        </div>
+                    </div>
+
+                    <!-- Campos Condicionales -->
+                    {% if user.user_type == 'Persona' %}
+                        <h5 class="text-muted mb-3 border-bottom pb-2 mt-4">Datos Personales</h5>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Nombre</label>
+                                <input type="text" name="nombre" class="form-control" value="{{ user.nombre }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Primer Apellido</label>
+                                <input type="text" name="primer_apellido" class="form-control" value="{{ user.primer_apellido }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Segundo Apellido</label>
+                                <input type="text" name="segundo_apellido" class="form-control" value="{{ user.segundo_apellido }}">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Teléfono Principal</label>
+                            <input type="text" name="telefono" class="form-control" value="{{ user.telefono }}">
+                        </div>
+
+                    {% else %}
+                        <h5 class="text-muted mb-3 border-bottom pb-2 mt-4">Datos de Empresa</h5>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Nombre Empresa</label>
+                            <input type="text" name="nombre_empresa" class="form-control" value="{{ user.nombre_empresa }}">
+                        </div>
+                        
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Encargado</label>
+                                <input type="text" name="encargado" class="form-control" value="{{ user.encargado }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Contacto (Referencia)</label>
+                                <input type="text" name="contacto" class="form-control" value="{{ user.contacto }}">
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Teléfono Fijo</label>
+                                <input type="text" name="telefono_fijo" class="form-control" value="{{ user.telefono_fijo }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Móvil</label>
+                                <input type="text" name="movil" class="form-control" value="{{ user.movil }}">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Dirección</label>
+                            <input type="text" name="direccion" class="form-control" value="{{ user.direccion }}">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Otros Detalles</label>
+                            <textarea name="otros_detalles" class="form-control" rows="2">{{ user.otros_detalles }}</textarea>
+                        </div>
+                    {% endif %}
+
+                    <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary px-4">Cancelar</a>
+                        <button type="submit" class="btn btn-primary px-4">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

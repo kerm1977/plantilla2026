@@ -1,0 +1,27 @@
+/* login.css - Estilos para inicio de sesión */
+
+.login-card {
+    border: none;
+    border-radius: 15px;
+    overflow: hidden; /* Para que el header no se salga de los bordes redondeados */
+}
+
+.login-header {
+    background-color: var(--main-warning);
+    color: #212529; /* Texto oscuro para contraste */
+    font-weight: bold;
+    border-bottom: none;
+    padding: 1.5rem;
+}
+
+.login-btn {
+    background-color: var(--main-warning);
+    border-color: var(--main-warning);
+    color: #212529;
+    font-weight: bold;
+}
+
+.login-btn:hover {
+    background-color: #e0a800; /* Un poco más oscuro al hover */
+    border-color: #d39e00;
+}

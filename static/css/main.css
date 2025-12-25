@@ -1,0 +1,14 @@
+/* main.css */
+/* Importación de hojas de estilo específicas por vista */
+@import url('base.css');
+@import url('home.css');
+@import url('login.css');
+@import url('register.css');
+@import url('perfil.css');
+@import url('dashboard.css');
+
+/* Variables Globales (Opcional, para consistencia) */
+:root {
+    --main-warning: #ffc107; /* Color Warning de Bootstrap */
+    --main-dark: #212529;
+}

@@ -1,0 +1,21 @@
+<!-- home.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="text-center mt-5">
+    <h1>Bienvenido al Sistema de Transporte</h1>
+    <p class="lead">Gestión de busetas para estudiantes y servicios especiales.</p>
+    
+    {% if not current_user.is_authenticated %}
+    <div class="mt-4">
+        <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg">
+            <i class="bi bi-box-arrow-in-right"></i> Iniciar Sesión / Login
+        </a>
+    </div>
+    {% else %}
+    <div class="mt-4">
+        <h3>Hola, {{ current_user.nombre if current_user.nombre else current_user.nombre_empresa }}</h3>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

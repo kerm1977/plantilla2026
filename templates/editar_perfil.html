@@ -1,0 +1,136 @@
+<!-- editar_perfil.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-lg border-0 rounded-4">
+            <div class="card-header bg-warning text-center py-3 border-0 rounded-top-4">
+                <h3 class="fw-bold mb-0">Editar Información</h3>
+            </div>
+            
+            <div class="card-body p-4 p-md-5">
+                <!-- Se agrega action explícito y enctype para subida de archivos -->
+                <form action="{{ url_for('editar_perfil') }}" method="POST" enctype="multipart/form-data">
+                    
+                    <!-- Sección de Avatar con vista previa -->
+                    <div class="text-center mb-5">
+                        <div class="position-relative d-inline-block">
+                            <!-- Imagen actual -->
+                            <img src="{{ url_for('static', filename='img/' + current_user.avatar) }}" 
+                                 class="rounded-circle border border-4 border-white shadow-sm"
+                                 style="width: 150px; height: 150px; object-fit: cover;"
+                                 alt="Avatar"
+                                 id="avatarPreview"
+                                 onerror="this.onerror=null;this.src='https://via.placeholder.com/150';">
+                            
+                            <!-- Botón flotante de cámara -->
+                            <label for="avatarInput" class="position-absolute bottom-0 end-0 bg-dark text-white rounded-circle p-2 shadow cursor-pointer" style="cursor: pointer; width: 40px; height: 40px; line-height: 25px;">
+                                <i class="bi bi-camera-fill"></i>
+                            </label>
+                        </div>
+                        <!-- Input oculto -->
+                        <input type="file" id="avatarInput" name="avatar" class="d-none" accept="image/*" onchange="previewImage(this)">
+                        <div class="form-text mt-2">Haz clic en la cámara para cambiar tu foto</div>
+                    </div>
+
+                    <!-- Campos del Formulario -->
+                    {% if current_user.user_type == 'Persona' %}
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Nombre</label>
+                                <input type="text" name="nombre" class="form-control" value="{{ current_user.nombre }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Primer Apellido</label>
+                                <input type="text" name="primer_apellido" class="form-control" value="{{ current_user.primer_apellido }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Segundo Apellido</label>
+                                <input type="text" name="segundo_apellido" class="form-control" value="{{ current_user.segundo_apellido }}">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Teléfono</label>
+                            <input type="text" name="telefono" class="form-control" value="{{ current_user.telefono }}">
+                        </div>
+                    {% else %}
+                        <!-- CAMPOS EMPRESA COMPLETOS -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Nombre Empresa</label>
+                            <input type="text" name="nombre_empresa" class="form-control" value="{{ current_user.nombre_empresa }}">
+                        </div>
+                        
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Encargado</label>
+                                <input type="text" name="encargado" class="form-control" value="{{ current_user.encargado }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Contacto (Referencia)</label>
+                                <input type="text" name="contacto" class="form-control" value="{{ current_user.contacto }}">
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Teléfono Fijo</label>
+                                <input type="text" name="telefono_fijo" class="form-control" value="{{ current_user.telefono_fijo }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Móvil</label>
+                                <input type="text" name="movil" class="form-control" value="{{ current_user.movil }}">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Dirección</label>
+                            <input type="text" name="direccion" class="form-control" value="{{ current_user.direccion }}">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Otros Detalles</label>
+                            <textarea name="otros_detalles" class="form-control" rows="2">{{ current_user.otros_detalles }}</textarea>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Whatsapp</label>
+                        <input type="text" name="whatsapp" class="form-control" value="{{ current_user.whatsapp }}">
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('perfil') }}" class="btn btn-outline-secondary px-4 rounded-pill">Cancelar</a>
+                        <button type="submit" class="btn btn-warning px-5 rounded-pill fw-bold">Guardar Cambios</button>
+                    </div>
+                </form>
+
+                <hr class="my-5">
+                
+                <div class="alert alert-danger border-0 bg-danger-subtle d-flex align-items-center justify-content-between p-3 rounded-3">
+                    <div>
+                        <h5 class="text-danger fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill me-2"></i>Zona de Peligro</h5>
+                        <p class="mb-0 small text-danger">Eliminar tu cuenta es una acción irreversible.</p>
+                    </div>
+                    <form action="{{ url_for('delete_account') }}" method="POST" onsubmit="return confirm('¿Estás completamente seguro de que deseas eliminar tu cuenta? Esta acción no se puede deshacer.');">
+                        <button type="submit" class="btn btn-danger rounded-pill">Eliminar Cuenta</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Script sencillo para previsualizar la imagen antes de guardar
+    function previewImage(input) {
+        if (input.files && input.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('avatarPreview').src = e.target.result;
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+</script>
+{% endblock %}

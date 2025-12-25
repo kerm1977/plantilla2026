@@ -1,0 +1,32 @@
+/* register.css - Estilos para formulario de registro */
+
+.register-card {
+    border: none;
+    border-radius: 15px;
+}
+
+.register-header {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid var(--main-warning);
+    color: #333;
+    font-weight: bold;
+}
+
+.section-title {
+    color: var(--main-warning);
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #eee;
+}
+
+.register-btn {
+    background-color: var(--main-warning);
+    border: none;
+    color: #212529;
+    font-weight: bold;
+    padding: 10px 40px;
+}
+
+.register-btn:hover {
+    background-color: #e0a800;
+}

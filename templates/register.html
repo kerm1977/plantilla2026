@@ -1,0 +1,155 @@
+<!-- register.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header text-center">
+                <h4>Registro de Usuario</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    
+                    <!-- Selección de Tipo -->
+                    <div class="mb-4">
+                        <label class="form-label">Tipo de Usuario:</label>
+                        <select class="form-select" id="userTypeSelect" name="tipo_registro" onchange="toggleForm()">
+                            <option value="Persona">Persona</option>
+                            <option value="Empresa">Empresa</option>
+                        </select>
+                    </div>
+
+                    <!-- Campos Comunes (Email/Pass) -->
+                    <div class="row">
+                         <div class="col-md-6 mb-3">
+                            <label>Email *</label>
+                            <input type="email" name="email" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label>Contraseña *</label>
+                            <input type="password" name="password" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label>Verificar Contraseña *</label>
+                            <input type="password" name="confirm_password" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <!-- Campos Persona -->
+                    <div id="formPersona">
+                        <h5 class="border-bottom pb-2">Datos Personales</h5>
+                        <div class="mb-3">
+                            <label>Avatar o imagen</label>
+                            <input type="file" name="avatar" class="form-control">
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label>Nombre *</label>
+                                <input type="text" name="nombre" class="form-control" id="req_nombre">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label>Primer Apellido *</label>
+                                <input type="text" name="primer_apellido" class="form-control" id="req_apellido1">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label>Segundo Apellido</label>
+                                <input type="text" name="segundo_apellido" class="form-control">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label>Teléfono *</label>
+                                <input type="text" name="telefono" class="form-control" id="req_tel">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label>Whatsapp</label>
+                                <input type="text" name="whatsapp" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Campos Empresa -->
+                    <div id="formEmpresa" style="display: none;">
+                        <h5 class="border-bottom pb-2">Datos de Empresa</h5>
+                        <div class="mb-3">
+                            <label>Nombre Empresa *</label>
+                            <input type="text" name="nombre_empresa" class="form-control" id="req_empresa">
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label>Encargado</label>
+                                <input type="text" name="encargado" class="form-control">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label>Contacto *</label>
+                                <input type="text" name="contacto" class="form-control" id="req_contacto">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label>Teléfono Fijo</label>
+                                <input type="text" name="telefono_fijo" class="form-control">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label>Móvil</label>
+                                <input type="text" name="movil" class="form-control">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label>Whatsapp</label>
+                                <input type="text" name="whatsapp_empresa" class="form-control">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label>Dirección (URL o Texto)</label>
+                            <input type="text" name="direccion" class="form-control">
+                        </div>
+                        <div class="mb-3">
+                            <label>Otros Detalles</label>
+                            <textarea name="otros_detalles" class="form-control"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 text-center">
+                        <button type="submit" class="btn btn-success btn-lg">Registrarse</button>
+                    </div>
+                    <div class="mt-2 text-center">
+                        <a href="{{ url_for('login') }}">Ya tengo una cuenta</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleForm() {
+    var tipo = document.getElementById("userTypeSelect").value;
+    var personaDiv = document.getElementById("formPersona");
+    var empresaDiv = document.getElementById("formEmpresa");
+    
+    // Inputs requeridos para persona
+    var reqPersona = [document.getElementById("req_nombre"), document.getElementById("req_apellido1"), document.getElementById("req_tel")];
+    // Inputs requeridos para empresa
+    var reqEmpresa = [document.getElementById("req_empresa"), document.getElementById("req_contacto")];
+
+    if (tipo === "Persona") {
+        personaDiv.style.display = "block";
+        empresaDiv.style.display = "none";
+        
+        reqPersona.forEach(el => el.required = true);
+        reqEmpresa.forEach(el => el.required = false);
+    } else {
+        personaDiv.style.display = "none";
+        empresaDiv.style.display = "block";
+        
+        reqPersona.forEach(el => el.required = false);
+        reqEmpresa.forEach(el => el.required = true);
+    }
+}
+// Init
+toggleForm();
+</script>
+{% endblock %}

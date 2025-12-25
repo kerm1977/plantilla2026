@@ -1,0 +1,208 @@
+<!-- dashboard.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    /* Lógica de visualización Responsiva */
+    
+    /* Por defecto (Desktop) mostramos tabla y ocultamos tarjetas */
+    .desktop-view { display: block; }
+    .mobile-view { display: none; }
+
+    /* Para dispositivos móviles (768px o menos) */
+    @media (max-width: 768px) {
+        .desktop-view { display: none !important; }
+        .mobile-view { display: block !important; }
+        
+        /* Ajustes visuales para las tarjetas móviles */
+        .user-card {
+            border-left: 5px solid var(--bs-warning);
+            margin-bottom: 1rem;
+        }
+        .user-card .card-header {
+            background-color: transparent;
+            border-bottom: 1px dashed #ccc;
+            font-weight: bold;
+        }
+    }
+</style>
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Dashboard Administrativo</h1>
+    
+    <!-- Botón Crear Usuario (Visible para admins/superusers) -->
+    <a href="{{ url_for('register') }}" class="btn btn-primary shadow-sm">
+        <i class="bi bi-person-plus-fill"></i> Crear Nuevo Usuario
+    </a>
+</div>
+
+<!-- Tarjetas de Estadísticas -->
+<div class="row mb-4">
+    <div class="col-md-4 col-sm-6">
+        <div class="card text-dark bg-warning mb-3 shadow-sm h-100">
+            <div class="card-header border-0 fw-bold">Usuarios Registrados</div>
+            <div class="card-body">
+                <h2 class="card-title display-6 fw-bold">{{ total_users }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-sm-6">
+        <div class="card text-white bg-success mb-3 shadow-sm h-100">
+            <div class="card-header border-0 fw-bold">Colaboradores</div>
+            <div class="card-body">
+                <h2 class="card-title display-6 fw-bold">{{ total_workers }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h3 class="mb-3">Gestión de Usuarios</h3>
+
+<!-- =========================
+     VISTA DE ESCRITORIO (Tabla) > 768px
+     ========================= -->
+<div class="table-responsive desktop-view shadow-sm rounded">
+    <table class="table table-hover table-striped align-middle mb-0 bg-white">
+        <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>Usuario / Empresa</th>
+                <th>Email</th>
+                <th>Tipo</th>
+                <th style="min-width: 150px;">Rol</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>{{ user.id }}</td>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <!-- CORRECCIÓN: Imagen por defecto elegante si falla la carga -->
+                        <img src="{{ url_for('static', filename='img/' + user.avatar) }}" 
+                             class="rounded-circle me-2 border" 
+                             style="width: 40px; height: 40px; object-fit: cover;"
+                             onerror="this.onerror=null;this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png'">
+                        <div>
+                            <div class="fw-bold">{{ user.nombre if user.user_type == 'Persona' else user.nombre_empresa }}</div>
+                            <small class="text-muted">{{ user.telefono if user.user_type == 'Persona' else user.contacto }}</small>
+                        </div>
+                    </div>
+                </td>
+                <td>{{ user.email }}</td>
+                <td><span class="badge bg-secondary">{{ user.user_type }}</span></td>
+                
+                <!-- Columna de Cambio de Rol -->
+                <td>
+                    {% if current_user.role == 'superuser' and user.id != current_user.id %}
+                    <form action="{{ url_for('update_role', id=user.id) }}" method="POST" class="d-flex">
+                        <select name="role" class="form-select form-select-sm me-1" onchange="this.form.submit()">
+                            <option value="regular" {% if user.role == 'regular' %}selected{% endif %}>Regular</option>
+                            <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
+                            <option value="superuser" {% if user.role == 'superuser' %}selected{% endif %}>Superuser</option>
+                        </select>
+                    </form>
+                    {% else %}
+                        <span class="badge {% if user.role == 'superuser' %}bg-danger{% elif user.role == 'admin' %}bg-primary{% else %}bg-info text-dark{% endif %}">
+                            {{ user.role|upper }}
+                        </span>
+                    {% endif %}
+                </td>
+
+                <!-- Acciones (Editar / Eliminar) -->
+                <td>
+                    <div class="btn-group" role="group">
+                        <!-- BOTÓN EDITAR -->
+                        {% if current_user.role == 'superuser' %}
+                            <a href="{{ url_for('edit_user_admin', id=user.id) }}" class="btn btn-sm btn-outline-primary" title="Editar">
+                                <i class="bi bi-pencil-fill"></i> Editar
+                            </a>
+                        {% endif %}
+
+                        <!-- BOTÓN ELIMINAR -->
+                        {% if current_user.role == 'superuser' and user.id != current_user.id %}
+                            <form action="{{ url_for('delete_user_admin', id=user.id) }}" method="POST" onsubmit="return confirm('¿Estás seguro de ELIMINAR a este usuario?');" style="display:inline;">
+                                <button type="submit" class="btn btn-sm btn-outline-danger ms-1" title="Eliminar">
+                                    <i class="bi bi-trash-fill"></i>
+                                </button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- =========================
+     VISTA MÓVIL (Tarjetas) < 768px
+     ========================= -->
+<div class="mobile-view">
+    {% for user in users %}
+    <div class="card user-card shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>ID: {{ user.id }} - <span class="badge bg-light text-dark">{{ user.user_type }}</span></span>
+            
+            <div class="btn-group">
+                {% if current_user.role == 'superuser' %}
+                    <a href="{{ url_for('edit_user_admin', id=user.id) }}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                {% endif %}
+                {% if current_user.role == 'superuser' and user.id != current_user.id %}
+                    <form action="{{ url_for('delete_user_admin', id=user.id) }}" method="POST" onsubmit="return confirm('¿Eliminar usuario?');" style="display:inline;">
+                        <button type="submit" class="btn btn-sm btn-danger ms-1">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="d-flex align-items-center mb-3">
+                <!-- CORRECCIÓN: Imagen por defecto elegante si falla la carga -->
+                <img src="{{ url_for('static', filename='img/' + user.avatar) }}" 
+                     class="rounded-circle me-3 border" 
+                     style="width: 60px; height: 60px; object-fit: cover;"
+                     onerror="this.onerror=null;this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png'">
+                <div>
+                    <h5 class="card-title mb-0">{{ user.nombre if user.user_type == 'Persona' else user.nombre_empresa }}</h5>
+                    <p class="card-text text-muted small mb-0">{{ user.email }}</p>
+                </div>
+            </div>
+
+            <div class="mb-2">
+                <strong>Contacto:</strong> {{ user.telefono if user.user_type == 'Persona' else user.contacto }}
+            </div>
+            
+            <div class="mb-3">
+                <strong>Rol Actual:</strong>
+                {% if current_user.role == 'superuser' and user.id != current_user.id %}
+                    <form action="{{ url_for('update_role', id=user.id) }}" method="POST" class="mt-2">
+                        <div class="input-group">
+                            <select name="role" class="form-select">
+                                <option value="regular" {% if user.role == 'regular' %}selected{% endif %}>Regular</option>
+                                <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
+                                <option value="superuser" {% if user.role == 'superuser' %}selected{% endif %}>Superuser</option>
+                            </select>
+                            <button class="btn btn-outline-secondary" type="submit">Guardar</button>
+                        </div>
+                    </form>
+                {% else %}
+                    <span class="badge {% if user.role == 'superuser' %}bg-danger{% elif user.role == 'admin' %}bg-primary{% else %}bg-info text-dark{% endif %} ms-2">
+                        {{ user.role|upper }}
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="mt-4 mb-5">
+    <h4>Acciones Rápidas</h4>
+    <a href="#" class="btn btn-outline-warning text-dark">Comunicarse con Colaborador</a>
+</div>
+{% endblock %}
