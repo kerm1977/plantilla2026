@@ -2,8 +2,10 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<!-- Librería para capturar el carnet como imagen -->
+<!-- Librerías para capturar el carnet como imagen y generar PDF -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
 
 <style>
     /* Lógica de visualización Responsiva */
@@ -26,7 +28,7 @@
         }
     }
 
-    /* ESTILOS DEL CARNET - DISEÑO LIMPIO Y LEGIBLE */
+    /* ESTILOS DEL CARNET - DISEÑO LIMPIO, LEGIBLE Y MÁS GRANDE */
     .carnet-wrapper {
         width: 420px;
         height: 260px;
@@ -92,16 +94,14 @@
         font-weight: 800;
         color: #000;
         line-height: 1.1;
-        margin-bottom: 8px; /* Aumentado ligeramente el margen inferior */
+        margin-bottom: 12px;
         text-transform: capitalize;
     }
-
-    /* Eliminada la clase .carnet-role-badge ya que no se usa */
 
     .carnet-detail {
         font-size: 0.9rem;
         color: #555;
-        margin-bottom: 4px;
+        margin-bottom: 6px;
         display: flex;
         align-items: center;
     }
@@ -132,6 +132,91 @@
 </style>
 
 <script>
+    /* ----------------------------------------------------
+       Lógica Generación PDF Global (Lista Completa)
+       ---------------------------------------------------- */
+    async function generateGlobalPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        const btn = document.getElementById('btnPdf');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Generando...';
+        btn.disabled = true;
+
+        try {
+            // 1. Obtener datos completos del backend
+            const response = await fetch('/admin/report/data');
+            if (!response.ok) throw new Error('Error en la red');
+            const data = await response.json();
+            
+            // 2. Encabezado del PDF
+            doc.setFontSize(20);
+            doc.setTextColor(40);
+            doc.text("Reporte General de Usuarios", 14, 22);
+            
+            doc.setFontSize(11);
+            doc.setTextColor(100);
+            doc.text("Generado el: " + new Date().toLocaleDateString() + " " + new Date().toLocaleTimeString(), 14, 30);
+            
+            let currentY = 40;
+
+            // 3. Tabla de Empresas
+            if (data.empresas.length > 0) {
+                doc.setFontSize(14);
+                doc.setTextColor(0);
+                doc.text("Empresas Registradas", 14, currentY);
+                
+                doc.autoTable({
+                    startY: currentY + 5,
+                    head: [['Nombre Empresa', 'Contacto', 'Email', 'Teléfono', 'Rol']],
+                    body: data.empresas.map(e => [
+                        e.nombre, 
+                        e.contacto, 
+                        e.email, 
+                        e.telefono, 
+                        e.role.toUpperCase()
+                    ]),
+                    theme: 'grid',
+                    headStyles: { fillColor: [255, 193, 7], textColor: 50 }, // Amarillo
+                    styles: { fontSize: 10 }
+                });
+                
+                currentY = doc.lastAutoTable.finalY + 15;
+            }
+
+            // 4. Tabla de Personas
+            if (data.personas.length > 0) {
+                doc.setFontSize(14);
+                doc.setTextColor(0);
+                doc.text("Personas (Usuarios)", 14, currentY);
+                
+                doc.autoTable({
+                    startY: currentY + 5,
+                    head: [['Nombre Completo', 'Email', 'Teléfono', 'Rol']],
+                    body: data.personas.map(p => [
+                        p.nombre, 
+                        p.email, 
+                        p.telefono, 
+                        p.role.toUpperCase()
+                    ]),
+                    theme: 'grid',
+                    headStyles: { fillColor: [52, 58, 64], textColor: 255 }, // Dark
+                    styles: { fontSize: 10 }
+                });
+            }
+            
+            doc.save('Reporte_Usuarios_Empresas.pdf');
+            
+        } catch (error) {
+            console.error(error);
+            alert("Hubo un error al generar el reporte.");
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }
+
     /* ----------------------------------------------------
        Lógica de Seguridad con Modal Bootstrap 
        ---------------------------------------------------- */
@@ -238,14 +323,12 @@
        Lógica de Generación de Carnet
        ---------------------------------------------------- */
     function openCarnetModal(userData) {
-        // Datos básicos
         document.getElementById('carnetName').textContent = userData.name;
         document.getElementById('carnetEmail').textContent = userData.email;
         document.getElementById('carnetContact').textContent = userData.contact || 'Sin contacto';
         document.getElementById('carnetType').textContent = userData.type;
         document.getElementById('carnetId').textContent = 'ID: ' + userData.id.toString().padStart(6, '0');
         
-        // Imagen con fallback seguro
         const img = document.getElementById('carnetPhoto');
         img.src = userData.avatar;
         img.onerror = function() {
@@ -263,7 +346,7 @@
         html2canvas(element, {
             backgroundColor: null,
             useCORS: true,
-            scale: 3 // Calidad alta
+            scale: 3
         }).then(canvas => {
             const link = document.createElement('a');
             link.download = `Carnet_${name}.${format}`;
@@ -276,9 +359,14 @@
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">Dashboard Administrativo</h1>
     
-    <a href="{{ url_for('register') }}" class="btn btn-primary shadow-sm">
-        <i class="bi bi-person-plus-fill"></i> Crear Nuevo Usuario
-    </a>
+    <div>
+        <a href="{{ url_for('register') }}" class="btn btn-primary shadow-sm">
+            <i class="bi bi-person-plus-fill"></i> Crear Nuevo Usuario
+        </a>
+        <button id="btnPdf" onclick="generateGlobalPDF()" class="btn btn-danger shadow-sm ms-2">
+            <i class="bi bi-file-earmark-pdf-fill"></i> Lista PDF
+        </button>
+    </div>
 </div>
 
 <!-- Tarjetas de Estadísticas -->
@@ -291,11 +379,17 @@
             </div>
         </div>
     </div>
+    <!-- Tarjeta Colaboradores ACTUALIZADA con botón -->
     <div class="col-md-4 col-sm-6">
         <div class="card text-white bg-success mb-3 shadow-sm h-100">
             <div class="card-header border-0 fw-bold">Colaboradores</div>
             <div class="card-body">
                 <h2 class="card-title display-6 fw-bold">{{ total_workers }}</h2>
+                <div class="text-end">
+                    <a href="{{ url_for('workers.add_worker') }}" class="btn btn-sm btn-light text-success fw-bold stretched-link">
+                        <i class="bi bi-plus-circle-fill"></i> Agregar
+                    </a>
+                </div>
             </div>
         </div>
     </div>
@@ -378,7 +472,6 @@
 
                 <td>
                     <div class="btn-group" role="group">
-                        <!-- BOTÓN CARNET -->
                         <button type="button" class="btn btn-sm btn-outline-warning text-dark" title="Ver Carnet"
                             onclick="openCarnetModal({
                                 name: '{{ user.nombre if user.user_type == 'Persona' else user.nombre_empresa }}',
@@ -425,7 +518,6 @@
             <span>ID: {{ user.id }} - <span class="badge bg-light text-dark">{{ user.user_type }}</span></span>
             
             <div class="btn-group">
-                <!-- BOTÓN CARNET MÓVIL -->
                 <button type="button" class="btn btn-sm btn-outline-warning text-dark"
                     onclick="openCarnetModal({
                         name: '{{ user.nombre if user.user_type == 'Persona' else user.nombre_empresa }}',
@@ -561,7 +653,6 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content bg-transparent border-0 shadow-none">
             <div class="modal-body d-flex justify-content-center">
-                <!-- DISEÑO VISUAL DEL CARNET -->
                 <div id="carnetPreview" class="carnet-wrapper">
                     <div class="carnet-header-logo">
                         <span class="carnet-title">TransporteCR</span>
@@ -572,7 +663,6 @@
                         <img id="carnetPhoto" class="carnet-photo" src="" alt="Foto">
                         <div class="carnet-info">
                             <div id="carnetName" class="carnet-name">Nombre Usuario</div>
-                            <!-- ROL ELIMINADO AQUÍ -->
                             <div class="carnet-detail"><i class="bi bi-envelope-fill"></i> <span id="carnetEmail">email@example.com</span></div>
                             <div class="carnet-detail"><i class="bi bi-telephone-fill"></i> <span id="carnetContact">8888-8888</span></div>
                             <div class="carnet-detail mt-1"><i class="bi bi-person-vcard"></i> Tipo: <span id="carnetType">Persona</span></div>
@@ -581,7 +671,6 @@
 
                     <div class="carnet-footer">
                         <span id="carnetId" class="carnet-id">ID: 000000</span>
-                        <!-- Código QR eliminado -->
                     </div>
                 </div>
             </div>

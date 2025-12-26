@@ -1,0 +1,180 @@
+<!-- add_collaborator.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card shadow-lg border-0 rounded-4">
+            <!-- CAMBIO DE COLOR: bg-warning y text-dark para consistencia -->
+            <div class="card-header bg-warning text-dark text-center py-3">
+                <h3 class="mb-0 fw-bold"><i class="bi bi-person-vcard-fill me-2"></i>Control de Colaboradores</h3>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST" action="{{ url_for('workers.add_worker') }}">
+                    
+                    <!-- DATOS DEL CONDUCTOR -->
+                    <!-- CAMBIO DE COLOR: Borde amarillo y texto oscuro -->
+                    <h5 class="text-dark border-bottom border-warning pb-2 mb-3 fw-bold">Datos del Conductor</h5>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Nombre del Conductor *</label>
+                            <input type="text" name="nombre" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Cédula *</label>
+                            <input type="text" name="cedula" class="form-control" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Licencia Tipo</label>
+                            <select name="licencia_tipo" class="form-select">
+                                <option value="B1">B1</option>
+                                <option value="B2">B2</option>
+                                <option value="B3">B3</option>
+                                <option value="B4">B4</option>
+                                <option value="C1">C1</option>
+                                <option value="C2">C2</option>
+                            </select>
+                        </div>
+                        <!-- Campos Categoría Letra y Número ELIMINADOS COMPLETAMENTE AQUÍ -->
+                        <div class="col-md-4">
+                            <label class="form-label">Teléfono Fijo</label>
+                            <input type="text" name="telefono_fijo" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Móvil *</label>
+                            <input type="text" name="movil" class="form-control" required>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Email</label>
+                            <input type="email" name="email" class="form-control">
+                        </div>
+                    </div>
+
+                    <!-- SELECCIÓN DE UNIDADES -->
+                    <div class="my-4 p-3 bg-light rounded border border-warning-subtle">
+                        <label class="form-label fw-bold fs-5">¿Con cuántas unidades cuenta?</label>
+                        <select id="cantidadUnidades" name="cantidad_unidades" class="form-select form-select-lg" onchange="generarCamposVehiculos()">
+                            <option value="0">Seleccione una cantidad...</option>
+                            {% for i in range(1, 11) %}
+                                <option value="{{ i }}">{{ i }} Unidad{{ 'es' if i > 1 else '' }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- CONTENEDOR DINÁMICO DE VEHÍCULOS -->
+                    <div id="vehiculosContainer"></div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-5">
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary px-4 rounded-pill">Cancelar</a>
+                        <!-- CAMBIO DE COLOR: Botón warning -->
+                        <button type="submit" class="btn btn-warning px-5 fw-bold rounded-pill">Guardar Colaborador</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function generarCamposVehiculos() {
+        const cantidad = document.getElementById('cantidadUnidades').value;
+        const container = document.getElementById('vehiculosContainer');
+        container.innerHTML = ''; // Limpiar contenedor
+
+        if (cantidad > 0) {
+            for (let i = 1; i <= cantidad; i++) {
+                const html = `
+                    <div class="card mb-4 border-warning shadow-sm">
+                        <div class="card-header bg-warning text-dark fw-bold">
+                            <i class="bi bi-bus-front"></i> Datos del Vehículo #${i}
+                        </div>
+                        <div class="card-body bg-light">
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label class="form-label fw-bold">Marca</label>
+                                    <input type="text" name="marca[]" class="form-control" required>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-bold">Año</label>
+                                    <select name="anio[]" class="form-select">
+                                        {% for year in range(2026, 1999, -1) %}
+                                            <option value="{{ year }}">{{ year }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-bold">Capacidad</label>
+                                    <input type="number" name="capacidad[]" class="form-control" min="8" max="50" placeholder="8-50" required>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-bold">Placa</label>
+                                    <input type="text" name="placa[]" class="form-control" required>
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">Tipo de Servicio</label>
+                                    <select name="tipo_servicio[]" class="form-select">
+                                        <option value="Transporte de Estudiantes">Transporte de Estudiantes</option>
+                                        <option value="Servicios Especiales">Servicios Especiales</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">Color</label>
+                                    <input type="text" name="color[]" class="form-control">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">Cuenta con Póliza</label>
+                                    <select name="poliza[]" class="form-select">
+                                        <option value="Si">Sí</option>
+                                        <option value="No">No</option>
+                                    </select>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">Al día</label>
+                                    <select name="al_dia[]" class="form-select">
+                                        <option value="Si">Sí</option>
+                                        <option value="No">No</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">Gravámenes</label>
+                                    <select name="gravamenes[]" class="form-select" onchange="toggleGravamen(this, ${i})">
+                                        <option value="No">No</option>
+                                        <option value="Si">Sí</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-12" id="detalleGravamenDiv_${i}" style="display: none;">
+                                    <label class="form-label text-danger fw-bold">Detalle del Gravamen</label>
+                                    <textarea name="detalle_gravamen[]" class="form-control border-danger" rows="2" placeholder="Especifique el gravamen..."></textarea>
+                                </div>
+                                <!-- Input oculto para mantener sincronía si está oculto -->
+                                <input type="hidden" name="detalle_gravamen[]" value="" disabled id="hiddenGravamen_${i}">
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', html);
+            }
+        }
+    }
+
+    function toggleGravamen(selectElement, index) {
+        const detalleDiv = document.getElementById(`detalleGravamenDiv_${index}`);
+        const textarea = detalleDiv.querySelector('textarea');
+        const hiddenInput = document.getElementById(`hiddenGravamen_${index}`);
+
+        if (selectElement.value === 'Si') {
+            detalleDiv.style.display = 'block';
+            textarea.required = true;
+            textarea.disabled = false;
+            hiddenInput.disabled = true; // Desactivar hidden para enviar el textarea
+        } else {
+            detalleDiv.style.display = 'none';
+            textarea.required = false;
+            textarea.disabled = true; // Desactivar textarea para no enviar basura
+            hiddenInput.disabled = false; // Activar hidden vacío para mantener orden en el array del backend
+        }
+    }
+</script>
+{% endblock %}

@@ -1,38 +1,72 @@
 <!-- navbar.html -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="{{ url_for('home') }}">
-            <i class="bi bi-bus-front-fill"></i> TransporteCR
-        </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ms-auto">
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('home') }}">Inicio</a>
-                </li>
-                {% if current_user.is_authenticated %}
-                    {% if current_user.role in ['superuser', 'admin'] %}
+<style>
+    /* Ocultar texto de marca en pantallas muy pequeñas (< 320px) */
+    @media (max-width: 319px) {
+        .brand-text {
+            display: none;
+        }
+    }
+</style>
+
+<div class="container-fluid fixed-top px-4 pt-3">
+    <!-- Se ajusta el background-color a un amarillo (warning) semi-transparente para mantener el color y el efecto blur -->
+    <nav class="navbar navbar-expand-lg navbar-light shadow-lg rounded-5" style="background-color: rgba(255, 193, 7, 0.85); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);">
+        <div class="container-fluid px-4">
+            <!-- Marca / Logo con Imagen y Texto Negro Puro -->
+            <a class="navbar-brand fw-bold fs-4 d-flex align-items-center" href="{{ url_for('home') }}" style="color: #000000 !important;">
+                <!-- Logo ajustado para no deformar el navbar (height: 40px) -->
+                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo" style="height: 40px; width: auto;" class="me-2">
+                <span class="brand-text">TRANSAVI</span>
+            </a>
+            
+            <!-- Botón Hamburguesa (Sin Borde) -->
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <!-- Enlaces de Navegación -->
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-center">
+                    <li class="nav-item">
+                        <a class="nav-link fw-bold mx-2 text-black" href="{{ url_for('home') }}">Inicio</a>
+                    </li>
+                    
+                    {% if current_user.is_authenticated %}
+                        {% if current_user.role in ['superuser', 'admin'] %}
+                            <li class="nav-item">
+                                <a class="nav-link fw-bold mx-2 text-black" href="{{ url_for('dashboard') }}">
+                                    <i class="bi bi-speedometer2 text-black"></i> Dashboard
+                                </a>
+                            </li>
+                        {% endif %}
+                        
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a>
+                            <a class="nav-link fw-bold mx-2 text-black" href="{{ url_for('perfil') }}">
+                                <i class="bi bi-person-circle text-black"></i> Mi Perfil
+                            </a>
+                        </li>
+                        
+                        <li class="nav-item ms-lg-3 mt-2 mt-lg-0">
+                            <!-- Botón de Salir: Sin Borde (border-0) -->
+                            <a class="btn btn-outline-dark border-0 rounded-pill px-4 fw-bold" href="{{ url_for('logout') }}">
+                                <i class="bi bi-box-arrow-right"></i> Salir
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link fw-bold mx-2 text-black" href="{{ url_for('login') }}">Iniciar Sesión</a>
+                        </li>
+                        <li class="nav-item ms-lg-2 mt-2 mt-lg-0">
+                            <!-- Botón Registrarse: Fondo Oscuro sólido y sin borde -->
+                            <a class="btn btn-dark text-warning rounded-pill px-4 fw-bold shadow-sm border-0" href="{{ url_for('register') }}">
+                                Registrarse
+                            </a>
                         </li>
                     {% endif %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('perfil') }}">Mi Perfil</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-danger" href="{{ url_for('logout') }}">Cerrar Sesión</a>
-                    </li>
-                {% else %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('login') }}">Iniciar Sesión</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('register') }}">Registrarse</a>
-                    </li>
-                {% endif %}
-            </ul>
+                </ul>
+            </div>
         </div>
-    </div>
-</nav>
+    </nav>
+</div>
+<!-- Espaciador para compensar el navbar fijo -->
+<div style="height: 100px;"></div>

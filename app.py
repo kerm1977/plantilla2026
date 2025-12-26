@@ -1,11 +1,10 @@
 # app.py
 import os
 import secrets
-from flask import Flask, render_template, redirect, url_for, flash, request, abort
+from flask import Flask, render_template, redirect, url_for, flash, request, abort, jsonify
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
-# Importamos 'or_' para consultas complejas de búsqueda
 from sqlalchemy import or_
 
 # Importaciones locales
@@ -102,7 +101,7 @@ def register():
                 telefono=request.form.get('telefono'),
                 whatsapp=request.form.get('whatsapp')
             )
-        else: # Empresa
+        else: 
             new_user = User(
                 email=email, password=hashed_password, user_type='Empresa', role='regular',
                 nombre_empresa=request.form.get('nombre_empresa'),
@@ -207,20 +206,17 @@ def delete_account():
     flash('Tu cuenta ha sido eliminada.', 'info')
     return redirect(url_for('home'))
 
-# --- RUTA DASHBOARD CON BÚSQUEDA Y PAGINACIÓN ---
 @app.route('/dashboard')
 @login_required
 def dashboard():
     if current_user.role not in ['superuser', 'admin']:
         abort(403)
         
-    # Parámetros de URL
     page = request.args.get('page', 1, type=int)
     search_query = request.args.get('q', '', type=str)
     
     query = User.query
 
-    # Lógica de Búsqueda
     if search_query:
         search_filter = f"%{search_query}%"
         query = query.filter(or_(
@@ -235,7 +231,6 @@ def dashboard():
             User.movil.ilike(search_filter)
         ))
     
-    # Paginación (10 items por página)
     pagination = query.paginate(page=page, per_page=10, error_out=False)
     users = pagination.items
     
@@ -254,8 +249,6 @@ def dashboard():
 def logout():
     logout_user()
     return redirect(url_for('home'))
-
-# --- RUTAS ADMINISTRATIVAS ---
 
 @app.route('/admin/delete_user/<int:id>', methods=['GET', 'POST'])
 @login_required
@@ -335,6 +328,40 @@ def edit_user_admin(id):
             flash('Error al actualizar usuario.', 'danger')
             
     return render_template('admin_edit_user.html', user=user)
+
+# --- NUEVA RUTA: DATOS PARA REPORTE PDF ---
+@app.route('/admin/report/data')
+@login_required
+def report_data():
+    if current_user.role not in ['superuser', 'admin']:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    users = User.query.all()
+    data = {'personas': [], 'empresas': []}
+    
+    for u in users:
+        if u.user_type == 'Persona':
+            nombre_completo = f"{u.nombre} {u.primer_apellido} {u.segundo_apellido or ''}".strip()
+            data['personas'].append({
+                'nombre': nombre_completo,
+                'email': u.email,
+                'telefono': u.telefono or 'N/A',
+                'role': u.role
+            })
+        else:
+            data['empresas'].append({
+                'nombre': u.nombre_empresa,
+                'contacto': u.contacto or 'N/A',
+                'email': u.email,
+                'telefono': u.telefono_fijo or u.movil or 'N/A',
+                'role': u.role
+            })
+            
+    # Ordenar alfabéticamente
+    data['personas'].sort(key=lambda x: x['nombre'].lower())
+    data['empresas'].sort(key=lambda x: x['nombre'].lower())
+    
+    return jsonify(data)
 
 if __name__ == '__main__':
     with app.app_context():
