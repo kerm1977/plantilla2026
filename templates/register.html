@@ -61,25 +61,34 @@
                         <div class="row">
                             <div class="col-md-4 mb-3">
                                 <label class="form-label fw-bold">Nombre *</label>
-                                <input type="text" name="nombre" class="form-control" id="req_nombre">
+                                <!-- Validación de nombre -->
+                                <input type="text" name="nombre" class="form-control" id="req_nombre" oninput="validateNameInput(this)">
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label fw-bold">Primer Apellido *</label>
-                                <input type="text" name="primer_apellido" class="form-control" id="req_apellido1">
+                                <!-- Validación de nombre -->
+                                <input type="text" name="primer_apellido" class="form-control" id="req_apellido1" oninput="validateNameInput(this)">
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label fw-bold">Segundo Apellido</label>
-                                <input type="text" name="segundo_apellido" class="form-control">
+                                <!-- Validación de nombre -->
+                                <input type="text" name="segundo_apellido" class="form-control" oninput="validateNameInput(this)">
                             </div>
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold">Teléfono *</label>
-                                <input type="text" name="telefono" class="form-control" id="req_tel">
+                                <label class="form-label fw-bold">Teléfono | Celular *</label>
+                                <!-- Validación estricta de teléfono (8 dígitos numéricos) -->
+                                <input type="text" name="telefono" class="form-control" id="req_tel" 
+                                       maxlength="8" minlength="8" pattern="\d{8}" inputmode="numeric" 
+                                       title="Debe tener exactamente 8 números" oninput="validatePhoneInput(this)">
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-bold">Whatsapp</label>
-                                <input type="text" name="whatsapp" class="form-control">
+                                <!-- Validación estricta de teléfono -->
+                                <input type="text" name="whatsapp" class="form-control" 
+                                       maxlength="8" minlength="8" pattern="\d{8}" inputmode="numeric" 
+                                       title="Debe tener exactamente 8 números" oninput="validatePhoneInput(this)">
                             </div>
                         </div>
                     </div>
@@ -104,15 +113,24 @@
                         <div class="row">
                             <div class="col-md-4 mb-3">
                                 <label class="form-label fw-bold">Teléfono Fijo</label>
-                                <input type="text" name="telefono_fijo" class="form-control">
+                                <!-- Validación estricta de teléfono -->
+                                <input type="text" name="telefono_fijo" class="form-control" 
+                                       maxlength="8" minlength="8" pattern="\d{8}" inputmode="numeric" 
+                                       title="Debe tener exactamente 8 números" oninput="validatePhoneInput(this)">
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label fw-bold">Móvil</label>
-                                <input type="text" name="movil" class="form-control">
+                                <!-- Validación estricta de teléfono -->
+                                <input type="text" name="movil" class="form-control" 
+                                       maxlength="8" minlength="8" pattern="\d{8}" inputmode="numeric" 
+                                       title="Debe tener exactamente 8 números" oninput="validatePhoneInput(this)">
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label fw-bold">Whatsapp</label>
-                                <input type="text" name="whatsapp_empresa" class="form-control">
+                                <!-- Validación estricta de teléfono -->
+                                <input type="text" name="whatsapp_empresa" class="form-control" 
+                                       maxlength="8" minlength="8" pattern="\d{8}" inputmode="numeric" 
+                                       title="Debe tener exactamente 8 números" oninput="validatePhoneInput(this)">
                             </div>
                         </div>
                         <div class="mb-3">
@@ -184,5 +202,27 @@
     // Configurar ambos campos
     setupPasswordToggle('passwordInput', 'togglePasswordBtn', 'toggleIcon');
     setupPasswordToggle('confirmPasswordInput', 'toggleConfirmBtn', 'toggleConfirmIcon');
+
+    // Validación para Nombres/Apellidos: Solo letras, sin espacios/números, formato Title
+    function validateNameInput(input) {
+        let value = input.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]/g, '');
+        if (value.length > 0) {
+            value = value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+        }
+        input.value = value;
+    }
+
+    // Validación para Teléfonos: Solo números, exactamente 8 dígitos
+    function validatePhoneInput(input) {
+        // Eliminar todo lo que no sea dígito
+        let value = input.value.replace(/\D/g, '');
+        
+        // Limitar estrictamente a 8 dígitos
+        if (value.length > 8) {
+            value = value.slice(0, 8);
+        }
+        
+        input.value = value;
+    }
 </script>
 {% endblock %}

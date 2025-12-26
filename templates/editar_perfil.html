@@ -2,39 +2,73 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<!-- Librería Cropper.js (Estilos) -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+
+<style>
+    /* Asegurar que la imagen dentro del modal se ajuste al contenedor */
+    .img-container {
+        max-height: 500px;
+        display: block;
+    }
+    .img-container img {
+        max-width: 100%;
+        display: block;
+    }
+    .cursor-pointer {
+        cursor: pointer;
+    }
+    
+    /* TRUCO BRUTAL: Hacer que el selector de recorte sea REDONDO */
+    .cropper-view-box,
+    .cropper-face {
+        border-radius: 50%;
+    }
+    /* Opcional: Quitar las líneas de guía para que se vea más limpio */
+    .cropper-dashed, .cropper-point, .cropper-line {
+        opacity: 0.5; 
+    }
+</style>
+
 <div class="row justify-content-center">
     <div class="col-md-8">
-        <div class="card shadow-lg border-0 rounded-4">
+        <div class="card shadow border-0 rounded-4">
             <div class="card-header bg-warning text-center py-3 border-0 rounded-top-4">
                 <h3 class="fw-bold mb-0">Editar Información</h3>
             </div>
             
             <div class="card-body p-4 p-md-5">
-                <!-- Se agrega action explícito y enctype para subida de archivos -->
-                <form action="{{ url_for('editar_perfil') }}" method="POST" enctype="multipart/form-data">
+                <!-- FORMULARIO PRINCIPAL -->
+                <form action="{{ url_for('editar_perfil') }}" method="POST" enctype="multipart/form-data" id="profileForm">
                     
-                    <!-- Sección de Avatar con vista previa -->
                     <div class="text-center mb-5">
                         <div class="position-relative d-inline-block">
-                            <!-- Imagen actual -->
+                            <!-- Vista previa con Fallback -->
                             <img src="{{ url_for('static', filename='img/' + current_user.avatar) }}" 
                                  class="rounded-circle border border-4 border-white shadow-sm"
-                                 style="width: 150px; height: 150px; object-fit: cover;"
+                                 style="width: 150px; height: 150px; object-fit: cover; object-position: center; background-color: white;"
                                  alt="Avatar"
                                  id="avatarPreview"
-                                 onerror="this.onerror=null;this.src='https://via.placeholder.com/150';">
+                                 onerror="this.onerror=null;this.src='{{ url_for('static', filename='img/logo.png') }}';">
                             
-                            <!-- Botón flotante de cámara -->
-                            <label for="avatarInput" class="position-absolute bottom-0 end-0 bg-dark text-white rounded-circle p-2 shadow cursor-pointer" style="cursor: pointer; width: 40px; height: 40px; line-height: 25px;">
+                            <!-- Botón para subir imagen (CORREGIDO: Usa onclick directo) -->
+                            <div onclick="document.getElementById('avatarInput').click();" 
+                                 class="position-absolute bottom-0 end-0 bg-dark text-white rounded-circle p-2 shadow cursor-pointer" 
+                                 style="width: 40px; height: 40px; line-height: 25px; transition: transform 0.2s;"
+                                 onmouseover="this.style.transform='scale(1.1)'"
+                                 onmouseout="this.style.transform='scale(1)'"
+                                 title="Cambiar foto">
                                 <i class="bi bi-camera-fill"></i>
-                            </label>
+                            </div>
                         </div>
-                        <!-- Input oculto -->
-                        <input type="file" id="avatarInput" name="avatar" class="d-none" accept="image/*" onchange="previewImage(this)">
-                        <div class="form-text mt-2">Haz clic en la cámara para cambiar tu foto</div>
+                        
+                        <!-- Input de archivo oculto pero funcional -->
+                        <!-- Se añade onclick para resetear el valor y permitir re-seleccionar la misma foto si falla -->
+                        <input type="file" id="avatarInput" name="avatar" style="display: none;" accept="image/*" onclick="this.value = null">
+                        
+                        <div class="form-text mt-2">Haz clic en la cámara para cambiar y ajustar tu foto</div>
                     </div>
 
-                    <!-- Campos del Formulario -->
                     {% if current_user.user_type == 'Persona' %}
                         <div class="row g-3 mb-3">
                             <div class="col-md-4">
@@ -55,12 +89,11 @@
                             <input type="text" name="telefono" class="form-control" value="{{ current_user.telefono }}">
                         </div>
                     {% else %}
-                        <!-- CAMPOS EMPRESA COMPLETOS -->
+                        <!-- CAMPOS EMPRESA -->
                         <div class="mb-3">
                             <label class="form-label fw-bold">Nombre Empresa</label>
                             <input type="text" name="nombre_empresa" class="form-control" value="{{ current_user.nombre_empresa }}">
                         </div>
-                        
                         <div class="row g-3 mb-3">
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">Encargado</label>
@@ -71,7 +104,6 @@
                                 <input type="text" name="contacto" class="form-control" value="{{ current_user.contacto }}">
                             </div>
                         </div>
-
                         <div class="row g-3 mb-3">
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">Teléfono Fijo</label>
@@ -82,12 +114,10 @@
                                 <input type="text" name="movil" class="form-control" value="{{ current_user.movil }}">
                             </div>
                         </div>
-
                         <div class="mb-3">
                             <label class="form-label fw-bold">Dirección</label>
                             <input type="text" name="direccion" class="form-control" value="{{ current_user.direccion }}">
                         </div>
-                        
                         <div class="mb-3">
                             <label class="form-label fw-bold">Otros Detalles</label>
                             <textarea name="otros_detalles" class="form-control" rows="2">{{ current_user.otros_detalles }}</textarea>
@@ -109,10 +139,10 @@
                 
                 <div class="alert alert-danger border-0 bg-danger-subtle d-flex align-items-center justify-content-between p-3 rounded-3">
                     <div>
-                        <h5 class="text-danger fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill me-2"></i>Zona de Peligro</h5>
-                        <p class="mb-0 small text-danger">Eliminar tu cuenta es una acción irreversible.</p>
+                        <h5 class="text-danger fw-bold mb-1">Zona de Peligro</h5>
+                        <p class="mb-0 small text-danger">Acción irreversible.</p>
                     </div>
-                    <form action="{{ url_for('delete_account') }}" method="POST" onsubmit="return confirm('¿Estás completamente seguro de que deseas eliminar tu cuenta? Esta acción no se puede deshacer.');">
+                    <form action="{{ url_for('delete_account') }}" method="POST" onsubmit="return confirm('¿Seguro que deseas eliminar tu cuenta?');">
                         <button type="submit" class="btn btn-danger rounded-pill">Eliminar Cuenta</button>
                     </form>
                 </div>
@@ -121,16 +151,133 @@
     </div>
 </div>
 
+<!-- MODAL PARA RECORTAR IMAGEN -->
+<div class="modal fade" id="cropImageModal" tabindex="-1" aria-labelledby="cropImageModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title" id="cropImageModalLabel">Ajustar Imagen</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0 bg-secondary d-flex justify-content-center align-items-center" style="min-height: 400px;">
+                <div class="img-container">
+                    <img id="imageToCrop" src="" alt="Imagen para recortar">
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="cropAndSave">Recortar y Usar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Librería Cropper.js (Script) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
 <script>
-    // Script sencillo para previsualizar la imagen antes de guardar
-    function previewImage(input) {
-        if (input.files && input.files[0]) {
-            var reader = new FileReader();
-            reader.onload = function(e) {
-                document.getElementById('avatarPreview').src = e.target.result;
-            }
-            reader.readAsDataURL(input.files[0]);
+    document.addEventListener('DOMContentLoaded', function() {
+        let cropper;
+        const avatarInput = document.getElementById('avatarInput');
+        const imageToCrop = document.getElementById('imageToCrop');
+        const avatarPreview = document.getElementById('avatarPreview');
+        const cropModalElement = document.getElementById('cropImageModal');
+        
+        // Inicializar instancia del modal de Bootstrap de manera segura
+        let cropModal;
+        try {
+            cropModal = new bootstrap.Modal(cropModalElement);
+        } catch (e) {
+            console.error("Error inicializando modal de Bootstrap:", e);
         }
-    }
+
+        // 1. Detectar selección de archivo
+        avatarInput.addEventListener('change', function (e) {
+            const files = e.target.files;
+            if (files && files.length > 0) {
+                const file = files[0];
+                
+                if (!file.type.startsWith('image/')) {
+                    alert('Por favor selecciona un archivo de imagen válido.');
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    // Limpiar instancia previa si existe
+                    if (cropper) {
+                        cropper.destroy();
+                        cropper = null;
+                    }
+                    
+                    // Asignar imagen
+                    imageToCrop.src = e.target.result;
+                    
+                    // Mostrar modal
+                    if(cropModal) cropModal.show();
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // 2. Inicializar Cropper cuando el modal es visible
+        cropModalElement.addEventListener('shown.bs.modal', function () {
+            cropper = new Cropper(imageToCrop, {
+                aspectRatio: 1, // Cuadrado 1:1
+                viewMode: 1,
+                dragMode: 'move',
+                autoCropArea: 1,
+                restore: false,
+                guides: true,
+                center: true,
+                highlight: false,
+                cropBoxMovable: true,
+                cropBoxResizable: true,
+                toggleDragModeOnDblclick: false,
+                minCropBoxWidth: 100,
+                minCropBoxHeight: 100
+            });
+        });
+
+        // 3. Limpiar al cerrar
+        cropModalElement.addEventListener('hidden.bs.modal', function () {
+            if (cropper) {
+                cropper.destroy();
+                cropper = null;
+            }
+            // Importante: dejar imageToCrop vacía para evitar parpadeos en la próxima apertura
+            imageToCrop.src = '';
+        });
+
+        // 4. Acción de recortar
+        document.getElementById('cropAndSave').addEventListener('click', function () {
+            if (!cropper) return;
+
+            const canvas = cropper.getCroppedCanvas({
+                width: 400,
+                height: 400,
+            });
+
+            if (!canvas) return;
+
+            canvas.toBlob(function (blob) {
+                // Actualizar visualmente
+                const url = URL.createObjectURL(blob);
+                avatarPreview.src = url;
+
+                // Crear archivo para el formulario
+                const file = new File([blob], "avatar.png", { type: "image/png" });
+                
+                // Reemplazar el archivo en el input
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                avatarInput.files = dataTransfer.files;
+
+                if(cropModal) cropModal.hide();
+            }, 'image/png');
+        });
+    });
 </script>
 {% endblock %}

@@ -12,6 +12,8 @@ from db import db
 from users import User
 from superusers import create_default_superusers
 from workers import workers_bp
+# NUEVO: Importar modelo de notificaciones
+from notifications import Notification 
 
 # Configuración inicial
 app = Flask(__name__)
@@ -34,6 +36,15 @@ app.register_blueprint(workers_bp)
 @login_manager.user_loader
 def load_user(user_id):
     return db.session.get(User, int(user_id))
+
+# --- CONTEXT PROCESSOR (Inyectar notificaciones en Navbar) ---
+@app.context_processor
+def inject_notifications():
+    if current_user.is_authenticated and current_user.role == 'superuser':
+        # Obtener notificaciones no leídas
+        notifs = Notification.query.filter_by(user_id=current_user.id, is_read=False).order_by(Notification.created_at.desc()).all()
+        return dict(notifications=notifs)
+    return dict(notifications=[])
 
 def save_picture(form_picture):
     random_hex = secrets.token_hex(8)
@@ -73,6 +84,7 @@ def login():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
+    # Permitir registro público si no hay usuario, o si es admin/super creando a otro
     if current_user.is_authenticated and current_user.role not in ['superuser', 'admin']:
         return redirect(url_for('home'))
 
@@ -115,6 +127,24 @@ def register():
             )
             
         db.session.add(new_user)
+        # Flush para obtener el ID o asegurar que el usuario existe antes de notificar
+        db.session.flush() 
+        
+        # --- LÓGICA DE NOTIFICACIÓN ---
+        # Buscar todos los superusuarios
+        superusers = User.query.filter_by(role='superuser').all()
+        identificador = new_user.nombre if new_user.user_type == 'Persona' else new_user.nombre_empresa
+        mensaje = f"Nuevo registro: {identificador} ({new_user.user_type})"
+        
+        for superadmin in superusers:
+            # No notificar si el propio superusuario está creando la cuenta
+            if current_user.is_authenticated and current_user.id == superadmin.id:
+                continue
+                
+            notif = Notification(user_id=superadmin.id, message=mensaje)
+            db.session.add(notif)
+        # -------------------------------
+
         db.session.commit()
         
         if current_user.is_authenticated and current_user.role in ['superuser', 'admin']:
@@ -125,6 +155,22 @@ def register():
         return redirect(url_for('login'))
 
     return render_template('register.html')
+
+# --- RUTA PARA MARCAR NOTIFICACIONES COMO LEÍDAS ---
+@app.route('/notifications/read', methods=['POST'])
+@login_required
+def mark_notifications_read():
+    if current_user.role != 'superuser':
+        return jsonify({'status': 'error'}), 403
+        
+    try:
+        # Marcar todas las del usuario como leídas
+        Notification.query.filter_by(user_id=current_user.id, is_read=False).update({'is_read': True})
+        db.session.commit()
+        return jsonify({'status': 'success'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @app.route('/perfil')
 @login_required
@@ -329,7 +375,6 @@ def edit_user_admin(id):
             
     return render_template('admin_edit_user.html', user=user)
 
-# --- NUEVA RUTA: DATOS PARA REPORTE PDF ---
 @app.route('/admin/report/data')
 @login_required
 def report_data():
@@ -357,7 +402,6 @@ def report_data():
                 'role': u.role
             })
             
-    # Ordenar alfabéticamente
     data['personas'].sort(key=lambda x: x['nombre'].lower())
     data['empresas'].sort(key=lambda x: x['nombre'].lower())
     

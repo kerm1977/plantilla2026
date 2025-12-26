@@ -22,11 +22,14 @@
         bottom: -50px; 
     }
     
-    /* Asegura que la imagen llene el contenedor correctamente */
+    /* Asegura que la imagen llene el contenedor correctamente y respete el recorte */
     .profile-avatar {
         background-color: transparent; 
         width: 100%;
         height: 100%;
+        object-fit: cover; /* CLAVE: Mantiene el aspecto del recorte sin deformar */
+        object-position: center; /* Centra la imagen por si acaso */
+        border-radius: 50%; /* REFUERZO CRÍTICO: Fuerza a la imagen misma a ser redonda */
     }
 </style>
 
@@ -37,18 +40,17 @@
             
             <div class="card-header bg-warning profile-header text-center border-0">
                 <div class="avatar-container mx-auto">
-                    <!-- Solo mostramos la imagen, no se edita aquí -->
+                    <!-- MODIFICADO: Fallback a logo.png si falla la imagen o es default -->
                     <img src="{{ url_for('static', filename='img/' + current_user.avatar) }}" 
                          alt="Avatar" 
                          class="profile-avatar"
-                         onerror="this.onerror=null;this.src='https://via.placeholder.com/150';">
+                         onerror="this.onerror=null;this.src='{{ url_for('static', filename='img/logo.png') }}';">
                 </div>
             </div>
 
             <div class="card-body pt-5 text-center">
-                <!-- Ajuste de margen superior para compensar el avatar más pequeño si es necesario -->
                 <h3 class="mt-4 mb-1">{{ current_user.nombre if current_user.user_type == 'Persona' else current_user.nombre_empresa }}</h3>
-                <span class="badge bg-secondary mb-4">{{ current_user.user_type }}</span>
+                <!-- ROL ELIMINADO AQUÍ -->
 
                 <div class="text-start px-md-4">
                     <div class="info-group">

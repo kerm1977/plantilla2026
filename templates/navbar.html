@@ -9,12 +9,11 @@
 </style>
 
 <div class="container-fluid fixed-top px-4 pt-3">
-    <!-- Se ajusta el background-color a un amarillo (warning) semi-transparente para mantener el color y el efecto blur -->
+    <!-- Navbar: Amarillo semi-transparente, Blur, Bordes muy redondeados (rounded-5) -->
     <nav class="navbar navbar-expand-lg navbar-light shadow-lg rounded-5" style="background-color: rgba(255, 193, 7, 0.85); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);">
         <div class="container-fluid px-4">
             <!-- Marca / Logo con Imagen y Texto Negro Puro -->
             <a class="navbar-brand fw-bold fs-4 d-flex align-items-center" href="{{ url_for('home') }}" style="color: #000000 !important;">
-                <!-- Logo ajustado para no deformar el navbar (height: 40px) -->
                 <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo" style="height: 40px; width: auto;" class="me-2">
                 <span class="brand-text">TRANSAVI</span>
             </a>
@@ -39,10 +38,51 @@
                                 </a>
                             </li>
                         {% endif %}
+
+                        <!-- CAMPANA DE NOTIFICACIONES (Solo Superusuarios) -->
+                        {% if current_user.role == 'superuser' %}
+                        <li class="nav-item dropdown mx-2">
+                            <a class="nav-link text-black position-relative" href="#" id="notifDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" onclick="markNotificationsRead()">
+                                <i class="bi bi-bell-fill fs-5"></i>
+                                {% if notifications and notifications|length > 0 %}
+                                    <span id="notifBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light">
+                                        {{ notifications|length }}
+                                    </span>
+                                {% endif %}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3 mt-2" aria-labelledby="notifDropdown" style="width: 300px; max-height: 400px; overflow-y: auto;">
+                                <li class="dropdown-header text-uppercase fw-bold text-muted small">Notificaciones</li>
+                                {% if notifications and notifications|length > 0 %}
+                                    {% for notif in notifications %}
+                                        <li>
+                                            <a class="dropdown-item py-2 border-bottom" href="{{ url_for('dashboard') }}">
+                                                <div class="d-flex align-items-center">
+                                                    <i class="bi bi-person-plus-fill text-success me-2"></i>
+                                                    <div>
+                                                        <small class="d-block text-wrap lh-sm">{{ notif.message }}</small>
+                                                        <small class="text-muted" style="font-size: 0.7rem;">{{ notif.created_at.strftime('%d/%m %H:%M') }}</small>
+                                                    </div>
+                                                </div>
+                                            </a>
+                                        </li>
+                                    {% endfor %}
+                                    <li><button class="dropdown-item text-center text-primary small py-2 fw-bold" onclick="markNotificationsRead()">Marcar como leídas</button></li>
+                                {% else %}
+                                    <li><span class="dropdown-item text-muted text-center py-3">No hay nuevas notificaciones</span></li>
+                                {% endif %}
+                            </ul>
+                        </li>
+                        {% endif %}
                         
                         <li class="nav-item">
-                            <a class="nav-link fw-bold mx-2 text-black" href="{{ url_for('perfil') }}">
-                                <i class="bi bi-person-circle text-black"></i> Mi Perfil
+                            <!-- MODIFICADO: Si falla el avatar (default o personalizado), carga logo.png -->
+                            <a class="nav-link fw-bold mx-2 text-black d-flex align-items-center" href="{{ url_for('perfil') }}">
+                                <img src="{{ url_for('static', filename='img/' + current_user.avatar) }}" 
+                                     alt="Avatar" 
+                                     class="rounded-circle border border-dark me-2"
+                                     style="width: 30px; height: 30px; object-fit: cover;"
+                                     onerror="this.onerror=null;this.src='{{ url_for('static', filename='img/logo.png') }}'">
+                                Mi Perfil
                             </a>
                         </li>
                         
@@ -68,5 +108,24 @@
         </div>
     </nav>
 </div>
+
+<script>
+    function markNotificationsRead() {
+        // Enviar petición para marcar como leídas
+        fetch('/notifications/read', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        }).then(response => {
+            if (response.ok) {
+                // Ocultar badge visualmente
+                const badge = document.getElementById('notifBadge');
+                if (badge) badge.style.display = 'none';
+            }
+        });
+    }
+</script>
+
 <!-- Espaciador para compensar el navbar fijo -->
 <div style="height: 100px;"></div>
