@@ -12,8 +12,8 @@ from db import db
 from users import User
 from superusers import create_default_superusers
 from workers import workers_bp
-# NUEVO: Importar modelo de notificaciones
-from notifications import Notification 
+from notifications import Notification
+from messages_model import Message
 
 # Configuración inicial
 app = Flask(__name__)
@@ -37,11 +37,10 @@ app.register_blueprint(workers_bp)
 def load_user(user_id):
     return db.session.get(User, int(user_id))
 
-# --- CONTEXT PROCESSOR (Inyectar notificaciones en Navbar) ---
+# --- CONTEXT PROCESSOR ---
 @app.context_processor
 def inject_notifications():
     if current_user.is_authenticated and current_user.role == 'superuser':
-        # Obtener notificaciones no leídas
         notifs = Notification.query.filter_by(user_id=current_user.id, is_read=False).order_by(Notification.created_at.desc()).all()
         return dict(notifications=notifs)
     return dict(notifications=[])
@@ -84,7 +83,6 @@ def login():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    # Permitir registro público si no hay usuario, o si es admin/super creando a otro
     if current_user.is_authenticated and current_user.role not in ['superuser', 'admin']:
         return redirect(url_for('home'))
 
@@ -127,23 +125,17 @@ def register():
             )
             
         db.session.add(new_user)
-        # Flush para obtener el ID o asegurar que el usuario existe antes de notificar
         db.session.flush() 
         
-        # --- LÓGICA DE NOTIFICACIÓN ---
-        # Buscar todos los superusuarios
         superusers = User.query.filter_by(role='superuser').all()
         identificador = new_user.nombre if new_user.user_type == 'Persona' else new_user.nombre_empresa
         mensaje = f"Nuevo registro: {identificador} ({new_user.user_type})"
         
         for superadmin in superusers:
-            # No notificar si el propio superusuario está creando la cuenta
             if current_user.is_authenticated and current_user.id == superadmin.id:
                 continue
-                
             notif = Notification(user_id=superadmin.id, message=mensaje)
             db.session.add(notif)
-        # -------------------------------
 
         db.session.commit()
         
@@ -156,26 +148,81 @@ def register():
 
     return render_template('register.html')
 
-# --- RUTA PARA MARCAR NOTIFICACIONES COMO LEÍDAS ---
+# --- RUTAS DE MENSAJERÍA Y PERFIL ---
+
+@app.route('/perfil')
+@login_required
+def perfil():
+    # Cargar mensajes recibidos ordenados por fecha
+    messages = Message.query.filter_by(recipient_id=current_user.id).order_by(Message.created_at.desc()).all()
+    return render_template('perfil.html', messages=messages)
+
+# Nueva Ruta: Enviar Mensaje Masivo (Solo Superusuarios)
+@app.route('/admin/broadcast', methods=['POST'])
+@login_required
+def broadcast_message():
+    if current_user.role not in ['superuser', 'admin']:
+        flash('Acceso denegado.', 'danger')
+        return redirect(url_for('dashboard'))
+        
+    subject = request.form.get('subject')
+    body = request.form.get('body')
+    
+    if not subject or not body:
+        flash('El asunto y el mensaje son obligatorios.', 'warning')
+        return redirect(url_for('dashboard'))
+        
+    try:
+        users = User.query.all()
+        count = 0
+        for user in users:
+            msg = Message(
+                recipient_id=user.id,
+                sender_id=current_user.id,
+                subject=subject,
+                body=body
+            )
+            db.session.add(msg)
+            count += 1
+            
+        db.session.commit()
+        flash(f'Mensaje enviado exitosamente a {count} usuarios.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error enviando broadcast: {e}")
+        flash('Error al enviar el mensaje masivo.', 'danger')
+        
+    return redirect(url_for('dashboard'))
+
+# NUEVA RUTA: Marcar mensaje individual como leído
+@app.route('/user/message/<int:id>/read', methods=['POST'])
+@login_required
+def read_message(id):
+    msg = db.session.get(Message, id)
+    
+    if not msg or msg.recipient_id != current_user.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    if not msg.is_read:
+        msg.is_read = True
+        db.session.commit()
+    
+    unread_count = Message.query.filter_by(recipient_id=current_user.id, is_read=False).count()
+    
+    return jsonify({'status': 'success', 'unread_count': unread_count})
+
 @app.route('/notifications/read', methods=['POST'])
 @login_required
 def mark_notifications_read():
     if current_user.role != 'superuser':
         return jsonify({'status': 'error'}), 403
-        
     try:
-        # Marcar todas las del usuario como leídas
         Notification.query.filter_by(user_id=current_user.id, is_read=False).update({'is_read': True})
         db.session.commit()
         return jsonify({'status': 'success'})
     except Exception as e:
         db.session.rollback()
         return jsonify({'status': 'error', 'message': str(e)}), 500
-
-@app.route('/perfil')
-@login_required
-def perfil():
-    return render_template('perfil.html')
 
 @app.route('/editar_perfil', methods=['GET', 'POST'])
 @login_required

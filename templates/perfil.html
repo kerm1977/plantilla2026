@@ -2,7 +2,6 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<!-- Estilo de seguridad y corrección de transparencia -->
 <style>
     .profile-card:hover {
         transform: none !important;
@@ -36,7 +35,8 @@
 <div class="row justify-content-center">
     <div class="col-md-8 col-lg-6">
         
-        <div class="card profile-card shadow-lg border-0">
+        <!-- Tarjeta de Perfil -->
+        <div class="card profile-card shadow-lg border-0 mb-5">
             
             <div class="card-header bg-warning profile-header text-center border-0">
                 <div class="avatar-container mx-auto">
@@ -106,6 +106,59 @@
             </div>
         </div>
 
+        <!-- SECCIÓN DE MENSAJES -->
+        <div class="card shadow-sm border-0 rounded-4">
+            <div class="card-header bg-dark text-white py-3 rounded-top-4 d-flex align-items-center">
+                <i class="bi bi-envelope-open-fill text-warning me-2 fs-5"></i>
+                <h5 class="mb-0 fw-bold">Buzón de Mensajes</h5>
+                
+                <!-- LÓGICA DE CONTADOR: Solo cuenta los NO leídos (is_read == False) -->
+                {% set unread_count = messages | selectattr('is_read', 'equalto', False) | list | length %}
+                <span id="msgBadge" class="badge bg-danger ms-2 rounded-pill shadow-sm border border-light" 
+                      {% if unread_count == 0 %}style="display:none"{% endif %}>
+                    {{ unread_count }}
+                </span>
+            </div>
+            <div class="card-body p-0">
+                {% if messages %}
+                    <div class="accordion accordion-flush" id="messagesAccordion">
+                        {% for msg in messages %}
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="heading{{ msg.id }}">
+                                <!-- Agregamos data-msg-id y onclic para detectar lectura -->
+                                <button class="accordion-button collapsed fw-bold" type="button" 
+                                        data-bs-toggle="collapse" 
+                                        data-bs-target="#collapse{{ msg.id }}"
+                                        data-msg-id="{{ msg.id }}"
+                                        onclick="markAsRead(this, {{ msg.id }})"
+                                        {% if not msg.is_read %}style="background-color: #fff8e1;"{% endif %}>
+                                    <div class="d-flex w-100 justify-content-between align-items-center me-3">
+                                        <!-- Indicador visual si no ha sido leído -->
+                                        <span class="text-truncate {% if not msg.is_read %}fw-bolder text-dark{% else %}fw-normal{% endif %}">
+                                            {% if not msg.is_read %}<i class="bi bi-circle-fill text-warning me-2 small" id="dot{{ msg.id }}"></i>{% endif %}
+                                            {{ msg.subject }}
+                                        </span>
+                                        <small class="text-muted" style="font-size: 0.75rem;">{{ msg.created_at.strftime('%d/%m/%Y') }}</small>
+                                    </div>
+                                </button>
+                            </h2>
+                            <div id="collapse{{ msg.id }}" class="accordion-collapse collapse" data-bs-parent="#messagesAccordion">
+                                <div class="accordion-body bg-light text-secondary">
+                                    {{ msg.body }}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-5 text-muted">
+                        <i class="bi bi-inbox display-4 mb-3 d-block opacity-25"></i>
+                        No tienes mensajes nuevos.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
     </div>
 </div>
 
@@ -141,4 +194,49 @@
         </div>
     </div>
 </div>
+
+<script>
+    // Función para marcar mensaje como leído al abrirlo
+    function markAsRead(element, msgId) {
+        // Verificar si ya fue marcado visualmente para no spamear el servidor
+        if (element.getAttribute('data-read') === 'true') return;
+
+        // Llamada AJAX al backend
+        fetch(`/user/message/${msgId}/read`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // 1. Actualizar contador del Badge
+                const badge = document.getElementById('msgBadge');
+                if (badge) {
+                    badge.innerText = data.unread_count;
+                    if (data.unread_count === 0) {
+                        badge.style.display = 'none';
+                    }
+                }
+
+                // 2. Actualizar estilo visual del mensaje (quitar negrita y fondo)
+                element.style.backgroundColor = ''; // Quitar fondo amarillo suave
+                const textSpan = element.querySelector('span.text-truncate');
+                if (textSpan) {
+                    textSpan.classList.remove('fw-bolder', 'text-dark');
+                    textSpan.classList.add('fw-normal');
+                }
+                
+                // 3. Quitar el punto amarillo
+                const dot = document.getElementById(`dot${msgId}`);
+                if (dot) dot.remove();
+
+                // Marcar como procesado localmente
+                element.setAttribute('data-read', 'true');
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+</script>
 {% endblock %}

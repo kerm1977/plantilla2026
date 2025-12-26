@@ -366,6 +366,10 @@
         <button id="btnPdf" onclick="generateGlobalPDF()" class="btn btn-danger shadow-sm ms-2">
             <i class="bi bi-file-earmark-pdf-fill"></i> Lista PDF
         </button>
+        <!-- BOTÓN MENSAJE MASIVO -->
+        <button type="button" class="btn btn-dark shadow-sm ms-2" data-bs-toggle="modal" data-bs-target="#messageModal">
+            <i class="bi bi-envelope-fill text-warning"></i> Mensaje Masivo
+        </button>
     </div>
 </div>
 
@@ -379,7 +383,6 @@
             </div>
         </div>
     </div>
-    <!-- Tarjeta Colaboradores ACTUALIZADA con botón -->
     <div class="col-md-4 col-sm-6">
         <div class="card text-white bg-success mb-3 shadow-sm h-100">
             <div class="card-header border-0 fw-bold">Colaboradores</div>
@@ -472,6 +475,7 @@
 
                 <td>
                     <div class="btn-group" role="group">
+                        <!-- BOTÓN CARNET -->
                         <button type="button" class="btn btn-sm btn-outline-warning text-dark" title="Ver Carnet"
                             onclick="openCarnetModal({
                                 name: '{{ user.nombre if user.user_type == 'Persona' else user.nombre_empresa }}',
@@ -518,6 +522,7 @@
             <span>ID: {{ user.id }} - <span class="badge bg-light text-dark">{{ user.user_type }}</span></span>
             
             <div class="btn-group">
+                <!-- BOTÓN CARNET MÓVIL -->
                 <button type="button" class="btn btn-sm btn-outline-warning text-dark"
                     onclick="openCarnetModal({
                         name: '{{ user.nombre if user.user_type == 'Persona' else user.nombre_empresa }}',
@@ -653,6 +658,7 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content bg-transparent border-0 shadow-none">
             <div class="modal-body d-flex justify-content-center">
+                <!-- DISEÑO VISUAL DEL CARNET -->
                 <div id="carnetPreview" class="carnet-wrapper">
                     <div class="carnet-header-logo">
                         <span class="carnet-title">TransporteCR</span>
@@ -663,6 +669,7 @@
                         <img id="carnetPhoto" class="carnet-photo" src="" alt="Foto">
                         <div class="carnet-info">
                             <div id="carnetName" class="carnet-name">Nombre Usuario</div>
+                            <!-- ROL ELIMINADO EN HTML -->
                             <div class="carnet-detail"><i class="bi bi-envelope-fill"></i> <span id="carnetEmail">email@example.com</span></div>
                             <div class="carnet-detail"><i class="bi bi-telephone-fill"></i> <span id="carnetContact">8888-8888</span></div>
                             <div class="carnet-detail mt-1"><i class="bi bi-person-vcard"></i> Tipo: <span id="carnetType">Persona</span></div>
@@ -671,6 +678,7 @@
 
                     <div class="carnet-footer">
                         <span id="carnetId" class="carnet-id">ID: 000000</span>
+                        <!-- Código QR eliminado -->
                     </div>
                 </div>
             </div>
@@ -679,6 +687,37 @@
                 <button type="button" class="btn btn-light rounded-pill" onclick="downloadCarnet('jpg')">Descargar JPG</button>
                 <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Cerrar</button>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL MENSAJE MASIVO -->
+<div class="modal fade" id="messageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title fw-bold"><i class="bi bi-envelope-fill text-warning me-2"></i> Enviar Mensaje a Todos</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('broadcast_message') }}" method="POST">
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Asunto</label>
+                        <input type="text" name="subject" class="form-control" required placeholder="Ej: Mantenimiento Programado">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Mensaje</label>
+                        <textarea name="body" class="form-control" rows="5" required placeholder="Escribe tu mensaje aquí..."></textarea>
+                    </div>
+                    <div class="alert alert-warning small">
+                        <i class="bi bi-info-circle-fill me-1"></i> Este mensaje se enviará a <strong>TODOS</strong> los usuarios registrados.
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning fw-bold rounded-pill px-4">Enviar Mensaje</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
