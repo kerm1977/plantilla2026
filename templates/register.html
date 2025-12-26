@@ -5,7 +5,7 @@
 <div class="row justify-content-center">
     <div class="col-md-8">
         <div class="card shadow border-0 rounded-4">
-            <!-- CAMBIO DE COLOR: bg-warning y text-dark -->
+            <!-- Encabezado Amarillo -->
             <div class="card-header bg-warning text-dark text-center py-3 rounded-top-4">
                 <h4 class="mb-0 fw-bold">Registro de Usuario</h4>
             </div>
@@ -23,25 +23,36 @@
 
                     <!-- Campos Comunes (Email/Pass) -->
                     <div class="row">
-                         <div class="col-md-6 mb-3">
+                         <div class="col-md-12 mb-3">
                             <label class="form-label fw-bold">Email *</label>
                             <input type="email" name="email" class="form-control" required>
                         </div>
                     </div>
+                    
+                    <!-- Contraseñas con Ojo -->
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label fw-bold">Contraseña *</label>
-                            <input type="password" name="password" class="form-control" required>
+                            <div class="input-group">
+                                <input type="password" class="form-control border-end-0" name="password" id="passwordInput" required style="border-color: #ced4da;">
+                                <button class="btn border border-start-0 text-muted" type="button" id="togglePasswordBtn" style="background-color: white; border-color: #ced4da;">
+                                    <i class="bi bi-eye" id="toggleIcon"></i>
+                                </button>
+                            </div>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label fw-bold">Verificar Contraseña *</label>
-                            <input type="password" name="confirm_password" class="form-control" required>
+                            <div class="input-group">
+                                <input type="password" class="form-control border-end-0" name="confirm_password" id="confirmPasswordInput" required style="border-color: #ced4da;">
+                                <button class="btn border border-start-0 text-muted" type="button" id="toggleConfirmBtn" style="background-color: white; border-color: #ced4da;">
+                                    <i class="bi bi-eye" id="toggleConfirmIcon"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
                     <!-- Campos Persona -->
                     <div id="formPersona">
-                        <!-- CAMBIO DE ESTILO: Título de sección con borde amarillo -->
                         <h5 class="text-dark border-bottom border-warning pb-2 mb-3 fw-bold">Datos Personales</h5>
                         <div class="mb-3">
                             <label class="form-label fw-bold">Avatar o imagen</label>
@@ -75,7 +86,6 @@
 
                     <!-- Campos Empresa -->
                     <div id="formEmpresa" style="display: none;">
-                        <!-- CAMBIO DE ESTILO: Título de sección con borde amarillo -->
                         <h5 class="text-dark border-bottom border-warning pb-2 mb-3 fw-bold">Datos de Empresa</h5>
                         <div class="mb-3">
                             <label class="form-label fw-bold">Nombre Empresa *</label>
@@ -116,7 +126,6 @@
                     </div>
 
                     <div class="mt-4 text-center">
-                        <!-- CAMBIO DE COLOR: btn-warning -->
                         <button type="submit" class="btn btn-warning btn-lg fw-bold rounded-pill px-5">Registrarse</button>
                     </div>
                     <div class="mt-3 text-center">
@@ -129,31 +138,51 @@
 </div>
 
 <script>
-function toggleForm() {
-    var tipo = document.getElementById("userTypeSelect").value;
-    var personaDiv = document.getElementById("formPersona");
-    var empresaDiv = document.getElementById("formEmpresa");
-    
-    // Inputs requeridos para persona
-    var reqPersona = [document.getElementById("req_nombre"), document.getElementById("req_apellido1"), document.getElementById("req_tel")];
-    // Inputs requeridos para empresa
-    var reqEmpresa = [document.getElementById("req_empresa"), document.getElementById("req_contacto")];
+    // Lógica para alternar visibilidad de formularios (Persona/Empresa)
+    function toggleForm() {
+        var tipo = document.getElementById("userTypeSelect").value;
+        var personaDiv = document.getElementById("formPersona");
+        var empresaDiv = document.getElementById("formEmpresa");
+        
+        var reqPersona = [document.getElementById("req_nombre"), document.getElementById("req_apellido1"), document.getElementById("req_tel")];
+        var reqEmpresa = [document.getElementById("req_empresa"), document.getElementById("req_contacto")];
 
-    if (tipo === "Persona") {
-        personaDiv.style.display = "block";
-        empresaDiv.style.display = "none";
-        
-        reqPersona.forEach(el => el.required = true);
-        reqEmpresa.forEach(el => el.required = false);
-    } else {
-        personaDiv.style.display = "none";
-        empresaDiv.style.display = "block";
-        
-        reqPersona.forEach(el => el.required = false);
-        reqEmpresa.forEach(el => el.required = true);
+        if (tipo === "Persona") {
+            personaDiv.style.display = "block";
+            empresaDiv.style.display = "none";
+            reqPersona.forEach(el => el.required = true);
+            reqEmpresa.forEach(el => el.required = false);
+        } else {
+            personaDiv.style.display = "none";
+            empresaDiv.style.display = "block";
+            reqPersona.forEach(el => el.required = false);
+            reqEmpresa.forEach(el => el.required = true);
+        }
     }
-}
-// Init
-toggleForm();
+    toggleForm();
+
+    // Lógica para mostrar/ocultar contraseñas
+    function setupPasswordToggle(inputId, btnId, iconId) {
+        const input = document.getElementById(inputId);
+        const btn = document.getElementById(btnId);
+        const icon = document.getElementById(iconId);
+
+        btn.addEventListener('click', function() {
+            const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+            input.setAttribute('type', type);
+            
+            if (type === 'text') {
+                icon.classList.remove('bi-eye');
+                icon.classList.add('bi-eye-slash');
+            } else {
+                icon.classList.remove('bi-eye-slash');
+                icon.classList.add('bi-eye');
+            }
+        });
+    }
+
+    // Configurar ambos campos
+    setupPasswordToggle('passwordInput', 'togglePasswordBtn', 'toggleIcon');
+    setupPasswordToggle('confirmPasswordInput', 'toggleConfirmBtn', 'toggleConfirmIcon');
 </script>
 {% endblock %}
