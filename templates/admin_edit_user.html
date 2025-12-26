@@ -4,15 +4,16 @@
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-8">
-        <div class="card shadow border-0">
-            <div class="card-header bg-primary text-white">
-                <h4 class="mb-0">Editar Usuario (Modo Superusuario)</h4>
+        <div class="card shadow border-0 rounded-4">
+            <!-- Encabezado Amarillo para consistencia -->
+            <div class="card-header bg-warning text-dark text-center py-3 rounded-top-4">
+                <h4 class="mb-0 fw-bold">Editar Usuario (Modo Superusuario)</h4>
             </div>
             <div class="card-body p-4">
                 <form method="POST">
                     
                     <!-- Sección General -->
-                    <h5 class="text-muted mb-3 border-bottom pb-2">Información de Cuenta</h5>
+                    <h5 class="text-dark mb-3 border-bottom border-warning pb-2 fw-bold">Información de Cuenta</h5>
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Email</label>
@@ -26,7 +27,7 @@
 
                     <!-- Campos Condicionales -->
                     {% if user.user_type == 'Persona' %}
-                        <h5 class="text-muted mb-3 border-bottom pb-2 mt-4">Datos Personales</h5>
+                        <h5 class="text-dark mb-3 border-bottom border-warning pb-2 mt-4 fw-bold">Datos Personales</h5>
                         <div class="row g-3 mb-3">
                             <div class="col-md-4">
                                 <label class="form-label fw-bold">Nombre</label>
@@ -41,13 +42,20 @@
                                 <input type="text" name="segundo_apellido" class="form-control" value="{{ user.segundo_apellido }}">
                             </div>
                         </div>
+                        
+                        <!-- CAMPO FECHA NACIMIENTO -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Fecha de Nacimiento</label>
+                            <input type="date" name="fecha_nacimiento" class="form-control" value="{{ user.fecha_nacimiento }}">
+                        </div>
+
                         <div class="mb-3">
                             <label class="form-label fw-bold">Teléfono Principal</label>
                             <input type="text" name="telefono" class="form-control" value="{{ user.telefono }}">
                         </div>
 
                     {% else %}
-                        <h5 class="text-muted mb-3 border-bottom pb-2 mt-4">Datos de Empresa</h5>
+                        <h5 class="text-dark mb-3 border-bottom border-warning pb-2 mt-4 fw-bold">Datos de Empresa</h5>
                         <div class="mb-3">
                             <label class="form-label fw-bold">Nombre Empresa</label>
                             <input type="text" name="nombre_empresa" class="form-control" value="{{ user.nombre_empresa }}">
@@ -87,8 +95,8 @@
                     {% endif %}
 
                     <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
-                        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary px-4">Cancelar</a>
-                        <button type="submit" class="btn btn-primary px-4">Guardar Cambios</button>
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary px-4 rounded-pill">Cancelar</a>
+                        <button type="submit" class="btn btn-warning px-4 fw-bold rounded-pill">Guardar Cambios</button>
                     </div>
                 </form>
             </div>

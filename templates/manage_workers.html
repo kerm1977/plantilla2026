@@ -1,0 +1,404 @@
+<!-- manage_workers.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- Librería para capturar el carnet -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<style>
+    .desktop-view { display: block; }
+    .mobile-view { display: none; }
+    @media (max-width: 768px) {
+        .desktop-view { display: none !important; }
+        .mobile-view { display: block !important; }
+        .worker-card { border-left: 5px solid var(--bs-warning); margin-bottom: 1rem; }
+    }
+
+    /* --- ESTILOS DEL CARNET --- */
+    .carnet-wrapper {
+        width: 340px;
+        height: 540px;
+        background-color: #ffffff;
+        border-radius: 16px;
+        color: #333;
+        position: relative;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        overflow: hidden;
+        border: 2px solid #ffc107;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .carnet-header {
+        background-color: #ffc107;
+        height: 100px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border-bottom: 5px solid #212529;
+    }
+
+    .carnet-logo-img { height: 70px; width: auto; }
+
+    .carnet-body {
+        flex: 1;
+        padding: 15px 20px;
+        background: #fff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .carnet-role-title {
+        font-size: 1.1rem;
+        font-weight: 900;
+        color: #212529;
+        text-transform: uppercase;
+        margin-top: 5px;
+    }
+
+    .carnet-photo-container {
+        width: 140px;
+        height: 140px;
+        background-color: #f1f3f5;
+        border: 3px solid #212529;
+        border-radius: 12px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 15px;
+        overflow: hidden;
+    }
+    
+    .carnet-photo-container img { width: 100%; height: 100%; object-fit: cover; }
+
+    .carnet-info-container {
+        width: 100%;
+        text-align: left;
+        border-top: 2px dashed #eee;
+        padding-top: 10px;
+    }
+
+    .carnet-field { margin-bottom: 8px; }
+    .carnet-label { font-size: 0.65rem; color: #666; text-transform: uppercase; font-weight: 700; display: block; }
+    .carnet-value { font-size: 0.95rem; color: #000; font-weight: 600; display: block; }
+
+    .carnet-footer {
+        height: 40px;
+        background-color: #212529;
+        color: #ffc107;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 20px;
+        font-size: 0.85rem;
+        font-weight: bold;
+    }
+    
+    .cursor-pointer { cursor: pointer; }
+</style>
+
+<script>
+    // Objeto global con los datos de conductores para el autocompletado y carnet
+    const conductoresData = {
+        {% for c in conductores %}
+        "{{ c.id }}": {
+            "id": "{{ c.id }}",
+            "nombre": {{ c.nombre|tojson }},
+            "cedula": "{{ c.cedula }}",
+            "fecha_nacimiento": "{{ c.fecha_nacimiento }}",
+            "licencia_tipo": "{{ c.licencia_tipo }}",
+            "movil": "{{ c.movil }}",
+            "email": {{ (c.email if c.email else 'N/A')|tojson }},
+            "foto": {{ (c.foto if c.foto else '')|tojson }}
+        },
+        {% endfor %}
+    };
+
+    /**
+     * Autocompleta el formulario al seleccionar un conductor
+     */
+    function autocompletarConductor(select) {
+        const id = select.value;
+        const form = document.getElementById('form-colaborador');
+        
+        if (id && conductoresData[id]) {
+            const data = conductoresData[id];
+            
+            // Llenar campos de texto
+            form.nombre.value = data.nombre;
+            form.cedula.value = data.cedula;
+            form.fecha_nacimiento.value = data.fecha_nacimiento;
+            form.licencia_tipo.value = data.licencia_tipo;
+            form.movil.value = data.movil;
+            form.email.value = (data.email === 'N/A' ? '' : data.email);
+            
+            // Manejar foto previa
+            if (data.foto && data.foto !== 'None' && data.foto !== '') {
+                document.getElementById('photo_preview_img').src = data.foto;
+                document.getElementById('photo_preview_img').classList.remove('d-none');
+                document.getElementById('photo_icon_placeholder').classList.add('d-none');
+                document.getElementById('foto_hidden').value = data.foto;
+            } else {
+                resetPhotoPreview();
+            }
+
+            // Cambiar el action para editar
+            form.action = `/workers/edit/${id}`;
+            document.getElementById('btn-submit-text').textContent = "Actualizar Datos del Conductor";
+        } else {
+            form.reset();
+            resetPhotoPreview();
+            form.action = "{{ url_for('workers.add_worker') }}";
+            document.getElementById('btn-submit-text').textContent = "Guardar Colaborador";
+        }
+    }
+
+    function resetPhotoPreview() {
+        document.getElementById('photo_preview_img').src = "";
+        document.getElementById('photo_preview_img').classList.add('d-none');
+        document.getElementById('photo_icon_placeholder').classList.remove('d-none');
+        document.getElementById('foto_hidden').value = "";
+    }
+
+    /**
+     * Compresión de imagen para evitar Error 413
+     */
+    function handlePhotoUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 400;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > MAX_WIDTH) {
+                        height *= MAX_WIDTH / width;
+                        width = MAX_WIDTH;
+                    }
+                } else {
+                    if (height > MAX_WIDTH) {
+                        width *= MAX_WIDTH / height;
+                        height = MAX_WIDTH;
+                    }
+                }
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                
+                document.getElementById('photo_preview_img').src = dataUrl;
+                document.getElementById('photo_preview_img').classList.remove('d-none');
+                document.getElementById('photo_icon_placeholder').classList.add('d-none');
+                document.getElementById('foto_hidden').value = dataUrl;
+            }
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    /**
+     * Abre el carnet buscando los datos por ID
+     */
+    function openWorkerCarnet(id) {
+        const workerData = conductoresData[id];
+        if (!workerData) return;
+
+        // Asignación de datos al carnet
+        document.getElementById('cName').textContent = workerData.nombre;
+        document.getElementById('cCedula').textContent = workerData.cedula;
+        document.getElementById('cLicencia').textContent = workerData.licencia_tipo;
+        document.getElementById('cMovil').textContent = workerData.movil;
+        
+        // Verificación de existencia del elemento cEmail antes de asignar
+        const emailElement = document.getElementById('cEmail');
+        if (emailElement) {
+            emailElement.textContent = workerData.email;
+        }
+        
+        document.getElementById('cId').textContent = 'ID: ' + workerData.id.toString().padStart(4, '0');
+        
+        const photoImg = document.getElementById('cPhotoImg');
+        const photoIcon = document.getElementById('cPhotoIcon');
+        
+        if (workerData.foto && workerData.foto !== 'None' && workerData.foto !== '') {
+            photoImg.src = workerData.foto;
+            photoImg.classList.remove('d-none');
+            photoIcon.classList.add('d-none');
+        } else {
+            photoImg.classList.add('d-none');
+            photoIcon.classList.remove('d-none');
+        }
+        
+        const modalElement = document.getElementById('workerCarnetModal');
+        const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+        modal.show();
+    }
+
+    function downloadWorkerCarnet(format) {
+        const element = document.getElementById('workerCarnetPreview');
+        html2canvas(element, { scale: 3, useCORS: true }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = `Carnet_${Date.now()}.${format}`;
+            link.href = canvas.toDataURL(`image/${format}`);
+            link.click();
+        });
+    }
+</script>
+
+<div class="d-flex justify-content-between align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="bi bi-person-vcard-fill text-warning me-2"></i>Gestión de Colaboradores</h1>
+    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-dark rounded-pill shadow-sm">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+</div>
+
+<!-- FORMULARIO DE REGISTRO / EDICIÓN CON AUTOCOMPLETE -->
+<div class="card shadow-sm border-0 rounded-4 mb-4 overflow-hidden">
+    <div class="card-header bg-dark text-warning p-3 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 font-bold"><i class="bi bi-person-badge-fill me-2"></i>Gestión de Datos y Carnet</h5>
+        <div class="d-flex align-items-center gap-2">
+            <span class="small text-white opacity-75">Seleccionar Conductor:</span>
+            <select class="form-select form-select-sm rounded-pill border-warning" style="min-width: 200px;" onchange="autocompletarConductor(this)">
+                <option value="">-- Nuevo Registro --</option>
+                {% for c in conductores %}
+                <option value="{{ c.id }}">{{ c.nombre }} ({{ c.cedula }})</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+    <div class="card-body p-4">
+        <form action="{{ url_for('workers.add_worker') }}" method="POST" id="form-colaborador">
+            <input type="hidden" name="foto" id="foto_hidden">
+            
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <label class="form-label small font-bold text-muted uppercase">Nombre Completo</label>
+                            <input type="text" name="nombre" class="form-control rounded-pill" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small font-bold text-muted uppercase">Cédula</label>
+                            <input type="text" name="cedula" class="form-control rounded-pill" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small font-bold text-muted uppercase text-warning">Fecha de Nacimiento</label>
+                            <input type="date" name="fecha_nacimiento" class="form-control rounded-pill border-warning" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small font-bold text-muted uppercase">Tipo de Licencia</label>
+                            <select name="licencia_tipo" class="form-select rounded-pill">
+                                <option value="B1">B1</option><option value="B2">B2</option><option value="B3">B3</option><option value="B4">B4</option>
+                                <option value="C1">C1</option><option value="C2">C2</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small font-bold text-muted uppercase">Móvil</label>
+                            <input type="text" name="movil" class="form-control rounded-pill" placeholder="Móvil" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small font-bold text-muted uppercase">Email</label>
+                            <input type="email" name="email" class="form-control rounded-pill" placeholder="Email">
+                        </div>
+                    </div>
+                </div>
+                <!-- Foto con Vista Previa -->
+                <div class="col-md-4 text-center border-start">
+                    <label class="form-label small font-bold text-muted uppercase d-block mb-3">Foto del Conductor</label>
+                    <div class="mx-auto bg-light rounded-4 d-flex align-items-center justify-content-center mb-2 shadow-inner" 
+                         style="width: 140px; height: 140px; border: 2px dashed #ffc107; overflow: hidden;">
+                        <img id="photo_preview_img" src="" class="d-none w-100 h-100 object-fit-cover">
+                        <i id="photo_icon_placeholder" class="bi bi-camera-fill text-muted fs-1"></i>
+                    </div>
+                    <input type="file" class="form-control form-control-sm rounded-pill" accept="image/*" onchange="handlePhotoUpload(event)">
+                </div>
+                <div class="col-12 text-end pt-3 border-top">
+                    <button type="submit" class="btn btn-warning px-5 fw-bold rounded-pill shadow-sm">
+                        <span id="btn-submit-text">Guardar Colaborador</span>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- LISTADO -->
+<div class="table-responsive shadow-sm rounded-4 border overflow-hidden">
+    <table class="table table-hover table-striped align-middle bg-white mb-0 text-center">
+        <thead class="table-dark text-warning">
+            <tr>
+                <th>Foto</th><th>Nombre</th><th>Edad</th><th>Licencia</th><th>Contacto</th><th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in conductores %}
+            <tr>
+                <td class="cursor-pointer" onclick="openWorkerCarnet('{{ c.id }}')" title="Ver Carnet">
+                    {% if c.foto and c.foto != 'None' %}
+                        <img src="{{ c.foto }}" class="rounded shadow-sm" style="width: 45px; height: 45px; object-fit: cover;">
+                    {% else %}
+                        <div class="bg-light rounded d-flex align-items-center justify-content-center mx-auto" style="width: 45px; height: 45px; border: 1px dashed #ccc;"><i class="bi bi-person"></i></div>
+                    {% endif %}
+                </td>
+                <td class="fw-bold text-start">{{ c.nombre }}</td>
+                <td><span class="badge bg-warning text-dark">{{ c.edad_actual if c.edad_actual else 'N/A' }} años</span></td>
+                <td><span class="badge bg-dark text-warning">{{ c.licencia_tipo }}</span></td>
+                <td>{{ c.movil }}</td>
+                <td>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-outline-warning text-dark" onclick="openWorkerCarnet('{{ c.id }}')" title="Ver Carnet">
+                            <i class="bi bi-person-badge-fill"></i>
+                        </button>
+                        <form action="{{ url_for('workers.delete_worker', id=c.id) }}" method="POST" onsubmit="return confirm('¿Eliminar?');" style="display:inline;">
+                            <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash-fill"></i></button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- MODAL CARNET -->
+<div class="modal fade" id="workerCarnetModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+        <div class="modal-content bg-transparent border-0 shadow-none">
+            <div id="workerCarnetPreview" class="carnet-wrapper mx-auto text-start">
+                <div class="carnet-header"><img src="{{ url_for('static', filename='img/logo.png') }}" class="carnet-logo-img"></div>
+                <div class="carnet-body">
+                    <div class="carnet-role-title">CONDUCTOR AUTORIZADO</div>
+                    <div class="carnet-photo-container mt-3">
+                        <img id="cPhotoImg" src="" class="d-none"><i id="cPhotoIcon" class="bi bi-person-fill fs-1 text-muted"></i>
+                    </div>
+                    <div class="carnet-info-container">
+                        <div class="carnet-field"><span class="carnet-label">Nombre</span><span class="carnet-value" id="cName"></span></div>
+                        <div class="row g-0">
+                            <div class="col-6 carnet-field"><span class="carnet-label">Cédula</span><span class="carnet-value" id="cCedula"></span></div>
+                            <div class="col-6 carnet-field"><span class="carnet-label">Licencia</span><span class="carnet-value" id="cLicencia"></span></div>
+                        </div>
+                        <div class="carnet-field"><span class="carnet-label">Móvil</span><span class="carnet-value" id="cMovil"></span></div>
+                        <!-- Campo Email Restaurado para evitar errores de JS -->
+                        <div class="carnet-field"><span class="carnet-label">Email</span><span class="carnet-value small" id="cEmail"></span></div>
+                    </div>
+                </div>
+                <div class="carnet-footer"><span id="cId"></span><span>TRANSAVI</span></div>
+            </div>
+            <div class="mt-3 text-center">
+                <button class="btn btn-warning rounded-pill px-4 fw-bold shadow" onclick="downloadWorkerCarnet('png')">Descargar Carnet</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

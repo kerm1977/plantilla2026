@@ -22,6 +22,9 @@ class User(db.Model, UserMixin):
     primer_apellido = db.Column(db.String(100), nullable=True)
     segundo_apellido = db.Column(db.String(100), nullable=True)
     
+    # NUEVO CAMPO: Fecha de Nacimiento
+    fecha_nacimiento = db.Column(db.Date, nullable=True)
+    
     # Campos Empresa
     nombre_empresa = db.Column(db.String(150), nullable=True)
     encargado = db.Column(db.String(150), nullable=True)

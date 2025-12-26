@@ -6,24 +6,39 @@
             display: none;
         }
     }
+    #notifBadge {
+        font-size: 0.65rem;
+        padding: 0.25em 0.5em;
+        z-index: 10;
+    }
+    .notif-item {
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+        transition: background 0.2s;
+    }
+    .notif-item:hover {
+        background-color: rgba(0,0,0,0.02);
+    }
+    .dropdown-menu-notif {
+        min-width: 320px;
+        max-height: 450px;
+        overflow-y: auto;
+    }
 </style>
 
 <div class="container-fluid fixed-top px-4 pt-3">
-    <!-- Navbar: Amarillo semi-transparente, Blur, Bordes muy redondeados (rounded-5) -->
+    <!-- Navbar: Amarillo semi-transparente con efecto de desenfoque y bordes redondeados -->
     <nav class="navbar navbar-expand-lg navbar-light shadow-lg rounded-5" style="background-color: rgba(255, 193, 7, 0.85); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);">
         <div class="container-fluid px-4">
-            <!-- Marca / Logo con Imagen y Texto Negro Puro -->
+            <!-- Logo y Marca -->
             <a class="navbar-brand fw-bold fs-4 d-flex align-items-center" href="{{ url_for('home') }}" style="color: #000000 !important;">
                 <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo" style="height: 40px; width: auto;" class="me-2">
                 <span class="brand-text">TRANSAVI</span>
             </a>
             
-            <!-- Botón Hamburguesa (Sin Borde) -->
             <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             
-            <!-- Enlaces de Navegación -->
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto align-items-center">
                     <li class="nav-item">
@@ -39,43 +54,65 @@
                             </li>
                         {% endif %}
 
-                        <!-- CAMPANA DE NOTIFICACIONES (Solo Superusuarios) -->
-                        {% if current_user.role == 'superuser' %}
+                        <!-- CAMPANA DE NOTIFICACIONES -->
+                        {% if current_user.role in ['superuser', 'admin'] %}
                         <li class="nav-item dropdown mx-2">
-                            <a class="nav-link text-black position-relative" href="#" id="notifDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" onclick="markNotificationsRead()">
+                            <a class="nav-link text-black position-relative" href="#" id="notifDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="bi bi-bell-fill fs-5"></i>
-                                {% if notifications and notifications|length > 0 %}
+                                {# SINCRONIZADO CON nav_notifs_count DE app.py #}
+                                {% if nav_notifs_count and nav_notifs_count > 0 %}
                                     <span id="notifBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light">
-                                        {{ notifications|length }}
+                                        {{ nav_notifs_count }}
                                     </span>
                                 {% endif %}
                             </a>
-                            <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3 mt-2" aria-labelledby="notifDropdown" style="width: 300px; max-height: 400px; overflow-y: auto;">
-                                <li class="dropdown-header text-uppercase fw-bold text-muted small">Notificaciones</li>
-                                {% if notifications and notifications|length > 0 %}
-                                    {% for notif in notifications %}
-                                        <li>
-                                            <a class="dropdown-item py-2 border-bottom" href="{{ url_for('dashboard') }}">
-                                                <div class="d-flex align-items-center">
-                                                    <i class="bi bi-person-plus-fill text-success me-2"></i>
-                                                    <div>
-                                                        <small class="d-block text-wrap lh-sm">{{ notif.message }}</small>
-                                                        <small class="text-muted" style="font-size: 0.7rem;">{{ notif.created_at.strftime('%d/%m %H:%M') }}</small>
+                            <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-4 mt-2 py-2 dropdown-menu-notif" aria-labelledby="notifDropdown">
+                                <li class="dropdown-header text-uppercase fw-bold text-dark small border-bottom mb-1 pb-2">Notificaciones y Mensajes</li>
+                                
+                                <div id="notifListContainer">
+                                {% if nav_notifs and nav_notifs|length > 0 %}
+                                    {% for item in nav_notifs %}
+                                        <li class="notif-item">
+                                            {% if item.is_message %}
+                                                <a class="dropdown-item py-2" href="{{ url_for('perfil') }}">
+                                                    <div class="d-flex align-items-center">
+                                                        <i class="bi bi-envelope-fill text-primary me-2 fs-6"></i>
+                                                        <div class="text-wrap">
+                                                            <p class="mb-0 small fw-semibold text-dark lh-sm" style="font-size: 0.85rem;">{{ item.message }}</p>
+                                                            <small class="text-muted" style="font-size: 0.7rem;">{{ item.created_at.strftime('%d/%m %H:%M') }}</small>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            </a>
+                                                </a>
+                                            {% else %}
+                                                <a class="dropdown-item py-2" href="{{ url_for('dashboard') }}">
+                                                    <div class="d-flex align-items-center">
+                                                        <i class="bi bi-info-circle-fill text-primary me-2 fs-6"></i>
+                                                        <div class="text-wrap">
+                                                            <p class="mb-0 small fw-semibold text-dark lh-sm" style="font-size: 0.85rem;">{{ item.message }}</p>
+                                                            <small class="text-muted" style="font-size: 0.7rem;">{{ item.created_at.strftime('%d/%m %H:%M') }}</small>
+                                                        </div>
+                                                    </div>
+                                                </a>
+                                            {% endif %}
                                         </li>
                                     {% endfor %}
-                                    <li><button class="dropdown-item text-center text-primary small py-2 fw-bold" onclick="markNotificationsRead()">Marcar como leídas</button></li>
+                                    <li class="mt-2 px-2 text-center">
+                                        <a href="{{ url_for('perfil') }}" class="btn btn-link text-primary text-decoration-none small py-1 fw-bold">
+                                            Ver todos los mensajes
+                                        </a>
+                                        <button class="btn btn-link text-primary text-decoration-none small py-1 fw-bold" onclick="markAllNotificationsAsRead(event)">
+                                            Marcar como leídas
+                                        </button>
+                                    </li>
                                 {% else %}
-                                    <li><span class="dropdown-item text-muted text-center py-3">No hay nuevas notificaciones</span></li>
+                                    <li><span class="dropdown-item text-muted text-center py-4 italic">No tienes notificaciones ni mensajes nuevos</span></li>
                                 {% endif %}
+                                </div>
                             </ul>
                         </li>
                         {% endif %}
                         
                         <li class="nav-item">
-                            <!-- MODIFICADO: Si falla el avatar (default o personalizado), carga logo.png -->
                             <a class="nav-link fw-bold mx-2 text-black d-flex align-items-center" href="{{ url_for('perfil') }}">
                                 <img src="{{ url_for('static', filename='img/' + current_user.avatar) }}" 
                                      alt="Avatar" 
@@ -87,7 +124,6 @@
                         </li>
                         
                         <li class="nav-item ms-lg-3 mt-2 mt-lg-0">
-                            <!-- Botón de Salir: Sin Borde (border-0) -->
                             <a class="btn btn-outline-dark border-0 rounded-pill px-4 fw-bold" href="{{ url_for('logout') }}">
                                 <i class="bi bi-box-arrow-right"></i> Salir
                             </a>
@@ -97,7 +133,6 @@
                             <a class="nav-link fw-bold mx-2 text-black" href="{{ url_for('login') }}">Iniciar Sesión</a>
                         </li>
                         <li class="nav-item ms-lg-2 mt-2 mt-lg-0">
-                            <!-- Botón Registrarse: Fondo Oscuro sólido y sin borde -->
                             <a class="btn btn-dark text-warning rounded-pill px-4 fw-bold shadow-sm border-0" href="{{ url_for('register') }}">
                                 Registrarse
                             </a>
@@ -110,22 +145,32 @@
 </div>
 
 <script>
-    function markNotificationsRead() {
-        // Enviar petición para marcar como leídas
+    /**
+     * Marca todas las notificaciones como leídas mediante AJAX sin recargar la página
+     */
+    function markAllNotificationsAsRead(event) {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        
         fetch('/notifications/read', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
+            headers: { 'Content-Type': 'application/json' }
         }).then(response => {
             if (response.ok) {
-                // Ocultar badge visualmente
+                // Ocultar el círculo rojo de inmediato
                 const badge = document.getElementById('notifBadge');
                 if (badge) badge.style.display = 'none';
+                
+                // Actualizar la lista visualmente
+                const container = document.getElementById('notifListContainer');
+                if (container) {
+                    container.innerHTML = '<li><span class="dropdown-item text-muted text-center py-4 italic">No tienes notificaciones nuevas</span></li>';
+                }
             }
-        });
+        }).catch(err => console.error("Error al procesar notificaciones:", err));
     }
 </script>
 
-<!-- Espaciador para compensar el navbar fijo -->
 <div style="height: 100px;"></div>

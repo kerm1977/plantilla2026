@@ -145,12 +145,10 @@
         btn.disabled = true;
 
         try {
-            // 1. Obtener datos completos del backend
             const response = await fetch('/admin/report/data');
             if (!response.ok) throw new Error('Error en la red');
             const data = await response.json();
             
-            // 2. Encabezado del PDF
             doc.setFontSize(20);
             doc.setTextColor(40);
             doc.text("Reporte General de Usuarios", 14, 22);
@@ -161,7 +159,6 @@
             
             let currentY = 40;
 
-            // 3. Tabla de Empresas
             if (data.empresas.length > 0) {
                 doc.setFontSize(14);
                 doc.setTextColor(0);
@@ -178,14 +175,13 @@
                         e.role.toUpperCase()
                     ]),
                     theme: 'grid',
-                    headStyles: { fillColor: [255, 193, 7], textColor: 50 }, // Amarillo
+                    headStyles: { fillColor: [255, 193, 7], textColor: 50 },
                     styles: { fontSize: 10 }
                 });
                 
                 currentY = doc.lastAutoTable.finalY + 15;
             }
 
-            // 4. Tabla de Personas
             if (data.personas.length > 0) {
                 doc.setFontSize(14);
                 doc.setTextColor(0);
@@ -201,7 +197,7 @@
                         p.role.toUpperCase()
                     ]),
                     theme: 'grid',
-                    headStyles: { fillColor: [52, 58, 64], textColor: 255 }, // Dark
+                    headStyles: { fillColor: [52, 58, 64], textColor: 255 },
                     styles: { fontSize: 10 }
                 });
             }
@@ -226,7 +222,6 @@
     function openSecurityModal(form) {
         pendingForm = form;
         currentStep = 1;
-        
         const header = document.getElementById('securityModalHeader');
         const title = document.getElementById('securityModalTitle');
         const body = document.getElementById('securityModalBody');
@@ -294,22 +289,18 @@
        ---------------------------------------------------- */
     document.addEventListener("DOMContentLoaded", function() {
         const searchInput = document.querySelector('input[name="q"]');
-        
         if (searchInput) {
             if (searchInput.value.length > 0) {
                 searchInput.focus();
                 searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
             }
-
             searchInput.addEventListener('input', function() {
                 const filter = this.value.toLowerCase();
-                
-                const rows = document.querySelectorAll('.desktop-view tbody tr');
+                const rows = document.querySelectorAll('.desktop-view tbody tr.data-row');
                 rows.forEach(row => {
                     const text = row.textContent.toLowerCase();
                     row.style.display = text.includes(filter) ? '' : 'none';
                 });
-
                 const cards = document.querySelectorAll('.mobile-view .user-card');
                 cards.forEach(card => {
                     const text = card.textContent.toLowerCase();
@@ -342,7 +333,6 @@
     function downloadCarnet(format) {
         const element = document.getElementById('carnetPreview');
         const name = document.getElementById('carnetName').textContent.replace(/\s+/g, '_');
-        
         html2canvas(element, {
             backgroundColor: null,
             useCORS: true,
@@ -358,22 +348,19 @@
 
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">Dashboard Administrativo</h1>
-    
     <div>
         <a href="{{ url_for('register') }}" class="btn btn-primary shadow-sm">
-            <i class="bi bi-person-plus-fill"></i> Crear Nuevo Usuario
+            <i class="bi bi-person-plus-fill"></i> Crear Usuario
         </a>
         <button id="btnPdf" onclick="generateGlobalPDF()" class="btn btn-danger shadow-sm ms-2">
             <i class="bi bi-file-earmark-pdf-fill"></i> Lista PDF
         </button>
-        <!-- BOTÓN MENSAJE MASIVO -->
         <button type="button" class="btn btn-dark shadow-sm ms-2" data-bs-toggle="modal" data-bs-target="#messageModal">
             <i class="bi bi-envelope-fill text-warning"></i> Mensaje Masivo
         </button>
     </div>
 </div>
 
-<!-- Tarjetas de Estadísticas -->
 <div class="row mb-4">
     <div class="col-md-4 col-sm-6">
         <div class="card text-dark bg-warning mb-3 shadow-sm h-100">
@@ -389,8 +376,9 @@
             <div class="card-body">
                 <h2 class="card-title display-6 fw-bold">{{ total_workers }}</h2>
                 <div class="text-end">
-                    <a href="{{ url_for('workers.add_worker') }}" class="btn btn-sm btn-light text-success fw-bold stretched-link">
-                        <i class="bi bi-plus-circle-fill"></i> Agregar
+                    <!-- BOTÓN GESTIONAR COLABORADORES (Lleva a la nueva vista) -->
+                    <a href="{{ url_for('workers.list_workers') }}" class="btn btn-sm btn-light text-success fw-bold stretched-link">
+                        <i class="bi bi-list-check"></i> Gestionar
                     </a>
                 </div>
             </div>
@@ -398,6 +386,9 @@
     </div>
 </div>
 
+<!-- =========================
+     SECCIÓN 1: GESTIÓN DE USUARIOS
+     ========================= -->
 <h3 class="mb-3">Gestión de Usuarios</h3>
 
 <form id="searchForm" method="GET" action="{{ url_for('dashboard') }}" class="mb-4">
@@ -411,7 +402,7 @@
     </div>
 </form>
 
-<!-- VISTA DE ESCRITORIO (Tabla) -->
+<!-- Tabla Usuarios Desktop -->
 <div class="table-responsive desktop-view shadow-sm rounded">
     <table class="table table-hover table-striped align-middle mb-0 bg-white">
         <thead class="table-dark">
@@ -426,10 +417,11 @@
         </thead>
         <tbody>
             {% for user in users %}
-            <tr>
+            <tr class="data-row"> <!-- Clase data-row añadida para filtro JS -->
                 <td>{{ user.id }}</td>
                 <td>
                     <div class="d-flex align-items-center">
+                        <!-- Imagen con fallback a logo.png -->
                         <img src="{{ url_for('static', filename='img/' + user.avatar) }}" 
                              class="rounded-circle me-2 border" 
                              style="width: 40px; height: 40px; object-fit: cover;"
@@ -475,7 +467,6 @@
 
                 <td>
                     <div class="btn-group" role="group">
-                        <!-- BOTÓN CARNET -->
                         <button type="button" class="btn btn-sm btn-outline-warning text-dark" title="Ver Carnet"
                             onclick="openCarnetModal({
                                 name: '{{ user.nombre if user.user_type == 'Persona' else user.nombre_empresa }}',
@@ -507,22 +498,27 @@
             </tr>
             {% else %}
             <tr>
-                <td colspan="6" class="text-center py-4 text-muted">No se encontraron resultados para tu búsqueda.</td>
+                <td colspan="6" class="text-center py-4 text-muted">
+                    {% if search_query %}
+                        No se encontraron usuarios que coincidan con "{{ search_query }}".
+                    {% else %}
+                        No hay usuarios registrados.
+                    {% endif %}
+                </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 </div>
 
-<!-- VISTA MÓVIL (Tarjetas) -->
-<div class="mobile-view">
+<!-- Tarjetas Usuarios Móvil -->
+<div class="mobile-view mb-5">
     {% for user in users %}
     <div class="card user-card shadow-sm">
         <div class="card-header d-flex justify-content-between align-items-center">
             <span>ID: {{ user.id }} - <span class="badge bg-light text-dark">{{ user.user_type }}</span></span>
             
             <div class="btn-group">
-                <!-- BOTÓN CARNET MÓVIL -->
                 <button type="button" class="btn btn-sm btn-outline-warning text-dark"
                     onclick="openCarnetModal({
                         name: '{{ user.nombre if user.user_type == 'Persona' else user.nombre_empresa }}',
@@ -600,18 +596,16 @@
             </div>
         </div>
     </div>
-    {% else %}
-    <div class="alert alert-info text-center">No se encontraron resultados para tu búsqueda.</div>
     {% endfor %}
 </div>
 
+<!-- PAGINACIÓN -->
 {% if pagination.pages > 1 %}
 <nav aria-label="Navegación de páginas" class="mt-4">
   <ul class="pagination justify-content-center">
     <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
       <a class="page-link" href="{{ url_for('dashboard', page=pagination.prev_num, q=search_query) }}" tabindex="-1" aria-disabled="true">Anterior</a>
     </li>
-    
     {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
       {% if page_num %}
         <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
@@ -621,7 +615,6 @@
          <li class="page-item disabled"><span class="page-link">...</span></li>
       {% endif %}
     {% endfor %}
-
     <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
       <a class="page-link" href="{{ url_for('dashboard', page=pagination.next_num, q=search_query) }}">Siguiente</a>
     </li>
@@ -634,7 +627,7 @@
     <a href="#" class="btn btn-outline-warning text-dark">Comunicarse con Colaborador</a>
 </div>
 
-<!-- MODAL DE SEGURIDAD (Igual que antes) -->
+<!-- MODALES (SEGURIDAD, CARNET, MENSAJE) -->
 <div class="modal fade" id="securityModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content text-center shadow-lg border-0">
@@ -653,32 +646,26 @@
     </div>
 </div>
 
-<!-- MODAL DEL CARNET -->
 <div class="modal fade" id="carnetModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content bg-transparent border-0 shadow-none">
             <div class="modal-body d-flex justify-content-center">
-                <!-- DISEÑO VISUAL DEL CARNET -->
                 <div id="carnetPreview" class="carnet-wrapper">
                     <div class="carnet-header-logo">
                         <span class="carnet-title">TransporteCR</span>
                         <i class="bi bi-bus-front-fill text-dark fs-4"></i>
                     </div>
-                    
                     <div class="carnet-body-content">
                         <img id="carnetPhoto" class="carnet-photo" src="" alt="Foto">
                         <div class="carnet-info">
                             <div id="carnetName" class="carnet-name">Nombre Usuario</div>
-                            <!-- ROL ELIMINADO EN HTML -->
                             <div class="carnet-detail"><i class="bi bi-envelope-fill"></i> <span id="carnetEmail">email@example.com</span></div>
                             <div class="carnet-detail"><i class="bi bi-telephone-fill"></i> <span id="carnetContact">8888-8888</span></div>
                             <div class="carnet-detail mt-1"><i class="bi bi-person-vcard"></i> Tipo: <span id="carnetType">Persona</span></div>
                         </div>
                     </div>
-
                     <div class="carnet-footer">
                         <span id="carnetId" class="carnet-id">ID: 000000</span>
-                        <!-- Código QR eliminado -->
                     </div>
                 </div>
             </div>
@@ -691,7 +678,6 @@
     </div>
 </div>
 
-<!-- MODAL MENSAJE MASIVO -->
 <div class="modal fade" id="messageModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content border-0 shadow-lg">

@@ -1,0 +1,253 @@
+<!-- edit_collaborator.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card shadow-lg border-0 rounded-4">
+            <div class="card-header bg-warning text-dark text-center py-3">
+                <h3 class="mb-0 fw-bold"><i class="bi bi-pencil-square me-2"></i>Editar Colaborador</h3>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST" action="{{ url_for('workers.edit_worker', id=conductor.id) }}">
+                    
+                    <!-- DATOS DEL CONDUCTOR -->
+                    <h5 class="text-dark border-bottom border-warning pb-2 mb-3 fw-bold">Datos del Conductor</h5>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Nombre del Conductor *</label>
+                            <input type="text" name="nombre" class="form-control" value="{{ conductor.nombre }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Cédula *</label>
+                            <input type="text" name="cedula" class="form-control" value="{{ conductor.cedula }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Licencia Tipo</label>
+                            <select name="licencia_tipo" class="form-select">
+                                {% for tipo in ['B1', 'B2', 'B3', 'B4', 'C1', 'C2'] %}
+                                    <option value="{{ tipo }}" {% if conductor.licencia_tipo == tipo %}selected{% endif %}>{{ tipo }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Teléfono Fijo</label>
+                            <input type="text" name="telefono_fijo" class="form-control" value="{{ conductor.telefono_fijo }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Móvil *</label>
+                            <input type="text" name="movil" class="form-control" value="{{ conductor.movil }}" required>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Email</label>
+                            <input type="email" name="email" class="form-control" value="{{ conductor.email }}">
+                        </div>
+                    </div>
+
+                    <!-- SELECCIÓN DE UNIDADES -->
+                    <div class="my-4 p-3 bg-light rounded border border-warning-subtle">
+                        <label class="form-label fw-bold fs-5">¿Con cuántas unidades cuenta?</label>
+                        <select id="cantidadUnidades" name="cantidad_unidades" class="form-select form-select-lg" onchange="generarCamposVehiculos()">
+                            <option value="0">Seleccione una cantidad...</option>
+                            {% for i in range(1, 11) %}
+                                <option value="{{ i }}" {% if conductor.cantidad_unidades == i %}selected{% endif %}>{{ i }} Unidad{{ 'es' if i > 1 else '' }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text text-muted">Si cambias la cantidad, los datos de los vehículos podrían reiniciarse.</div>
+                    </div>
+
+                    <!-- CONTENEDOR DE VEHÍCULOS (Precargado con Jinja2) -->
+                    <div id="vehiculosContainer">
+                        {% for v in conductor.vehiculos %}
+                        <div class="card mb-4 border-warning shadow-sm">
+                            <div class="card-header bg-warning text-dark fw-bold">
+                                <i class="bi bi-bus-front"></i> Datos del Vehículo #{{ loop.index }}
+                            </div>
+                            <div class="card-body bg-light">
+                                <div class="row g-3">
+                                    <div class="col-md-3">
+                                        <label class="form-label fw-bold">Marca</label>
+                                        <input type="text" name="marca[]" class="form-control" value="{{ v.marca }}" required>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label fw-bold">Año</label>
+                                        <select name="anio[]" class="form-select">
+                                            {% for year in range(2026, 1999, -1) %}
+                                                <option value="{{ year }}" {% if v.anio == year %}selected{% endif %}>{{ year }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label fw-bold">Capacidad</label>
+                                        <input type="number" name="capacidad[]" class="form-control" value="{{ v.capacidad }}" min="8" max="50" required>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label fw-bold">Placa</label>
+                                        <input type="text" name="placa[]" class="form-control" value="{{ v.placa }}" required>
+                                    </div>
+                                    
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-bold">Tipo de Servicio</label>
+                                        <select name="tipo_servicio[]" class="form-select">
+                                            <option value="Transporte de Estudiantes" {% if v.tipo_servicio == 'Transporte de Estudiantes' %}selected{% endif %}>Transporte de Estudiantes</option>
+                                            <option value="Servicios Especiales" {% if v.tipo_servicio == 'Servicios Especiales' %}selected{% endif %}>Servicios Especiales</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-bold">Color</label>
+                                        <input type="text" name="color[]" class="form-control" value="{{ v.color }}">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-bold">Cuenta con Póliza</label>
+                                        <select name="poliza[]" class="form-select">
+                                            <option value="Si" {% if v.tiene_poliza == 'Si' %}selected{% endif %}>Sí</option>
+                                            <option value="No" {% if v.tiene_poliza == 'No' %}selected{% endif %}>No</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-bold">Al día</label>
+                                        <select name="al_dia[]" class="form-select">
+                                            <option value="Si" {% if v.al_dia == 'Si' %}selected{% endif %}>Sí</option>
+                                            <option value="No" {% if v.al_dia == 'No' %}selected{% endif %}>No</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-bold">Gravámenes</label>
+                                        <select name="gravamenes[]" class="form-select" onchange="toggleGravamen(this, {{ loop.index }})">
+                                            <option value="No" {% if v.tiene_gravamenes == 'No' %}selected{% endif %}>No</option>
+                                            <option value="Si" {% if v.tiene_gravamenes == 'Si' %}selected{% endif %}>Sí</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-12" id="detalleGravamenDiv_{{ loop.index }}" style="display: {% if v.tiene_gravamenes == 'Si' %}block{% else %}none{% endif %};">
+                                        <label class="form-label text-danger fw-bold">Detalle del Gravamen</label>
+                                        <textarea name="detalle_gravamen[]" class="form-control border-danger" rows="2">{{ v.detalle_gravamen or '' }}</textarea>
+                                    </div>
+                                    <input type="hidden" name="detalle_gravamen[]" value="" {% if v.tiene_gravamenes == 'Si' %}disabled{% endif %} id="hiddenGravamen_{{ loop.index }}">
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-5">
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary px-4 rounded-pill">Cancelar</a>
+                        <button type="submit" class="btn btn-warning px-5 fw-bold rounded-pill">Actualizar Colaborador</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Misma lógica de generación que en add_collaborator para cuando el usuario cambie el número
+    function generarCamposVehiculos() {
+        const cantidad = document.getElementById('cantidadUnidades').value;
+        const container = document.getElementById('vehiculosContainer');
+        
+        // ADVERTENCIA: Esto borrará los datos precargados si se cambia el número
+        if(!confirm('Al cambiar la cantidad de unidades se reiniciarán los datos de los vehículos. ¿Deseas continuar?')) {
+            // Revertir selección si cancela (complicado de implementar simple sin guardar estado previo, 
+            // así que asumimos que si cambia es porque quiere rehacer)
+            return; 
+        }
+
+        container.innerHTML = ''; 
+
+        if (cantidad > 0) {
+            for (let i = 1; i <= cantidad; i++) {
+                const html = `
+                    <div class="card mb-4 border-warning shadow-sm">
+                        <div class="card-header bg-warning text-dark fw-bold">
+                            <i class="bi bi-bus-front"></i> Datos del Vehículo #${i}
+                        </div>
+                        <div class="card-body bg-light">
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label class="form-label fw-bold">Marca</label>
+                                    <input type="text" name="marca[]" class="form-control" required>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-bold">Año</label>
+                                    <select name="anio[]" class="form-select">
+                                        {% for year in range(2026, 1999, -1) %}
+                                            <option value="{{ year }}">{{ year }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-bold">Capacidad</label>
+                                    <input type="number" name="capacidad[]" class="form-control" min="8" max="50" placeholder="8-50" required>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-bold">Placa</label>
+                                    <input type="text" name="placa[]" class="form-control" required>
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">Tipo de Servicio</label>
+                                    <select name="tipo_servicio[]" class="form-select">
+                                        <option value="Transporte de Estudiantes">Transporte de Estudiantes</option>
+                                        <option value="Servicios Especiales">Servicios Especiales</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">Color</label>
+                                    <input type="text" name="color[]" class="form-control">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">Cuenta con Póliza</label>
+                                    <select name="poliza[]" class="form-select">
+                                        <option value="Si">Sí</option>
+                                        <option value="No">No</option>
+                                    </select>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">Al día</label>
+                                    <select name="al_dia[]" class="form-select">
+                                        <option value="Si">Sí</option>
+                                        <option value="No">No</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">Gravámenes</label>
+                                    <select name="gravamenes[]" class="form-select" onchange="toggleGravamen(this, ${i})">
+                                        <option value="No">No</option>
+                                        <option value="Si">Sí</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-12" id="detalleGravamenDiv_${i}" style="display: none;">
+                                    <label class="form-label text-danger fw-bold">Detalle del Gravamen</label>
+                                    <textarea name="detalle_gravamen[]" class="form-control border-danger" rows="2" placeholder="Especifique el gravamen..."></textarea>
+                                </div>
+                                <input type="hidden" name="detalle_gravamen[]" value="" disabled id="hiddenGravamen_${i}">
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', html);
+            }
+        }
+    }
+
+    function toggleGravamen(selectElement, index) {
+        const detalleDiv = document.getElementById(`detalleGravamenDiv_${index}`);
+        const textarea = detalleDiv.querySelector('textarea');
+        const hiddenInput = document.getElementById(`hiddenGravamen_${index}`);
+
+        if (selectElement.value === 'Si') {
+            detalleDiv.style.display = 'block';
+            textarea.required = true;
+            textarea.disabled = false;
+            hiddenInput.disabled = true; 
+        } else {
+            detalleDiv.style.display = 'none';
+            textarea.required = false;
+            textarea.disabled = true; 
+            hiddenInput.disabled = false; 
+        }
+    }
+</script>
+{% endblock %}
