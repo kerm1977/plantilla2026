@@ -84,6 +84,13 @@
     .carnet-field { margin-bottom: 8px; }
     .carnet-label { font-size: 0.65rem; color: #666; text-transform: uppercase; font-weight: 700; display: block; }
     .carnet-value { font-size: 0.95rem; color: #000; font-weight: 600; display: block; }
+    .carnet-vehiculo {
+        background: rgba(255, 193, 7, 0.1);
+        border-left: 3px solid #ffc107;
+        padding: 5px 10px;
+        margin: 5px 0;
+        border-radius: 4px;
+    }
 
     .carnet-footer {
         height: 40px;
@@ -254,6 +261,270 @@
             link.click();
         });
     }
+
+    // Contador de vehículos
+    let vehiculoCounter = 0;
+
+    // Función para agregar un nuevo vehículo
+    function agregarVehiculo() {
+        const container = document.getElementById('vehiculosContainer');
+        const index = vehiculoCounter++;
+        
+        const vehiculoHTML = `
+            <div class="card mb-3 border-warning" id="vehiculo-${index}">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">Vehículo #${index + 1}</h6>
+                    <button type="button" class="btn btn-sm btn-outline-danger btn-sm" onclick="eliminarVehiculo(${index})">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Placa del Vehículo *</label>
+                            <input type="text" name="vehiculos[${index}][placa]" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Marca *</label>
+                            <input type="text" name="vehiculos[${index}][marca]" class="form-control" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Año *</label>
+                            <select name="vehiculos[${index}][anio]" class="form-select" required>
+                                <option value="">Seleccione año</option>
+                                {% for year in range(2026, 1999, -1) %}
+                                    <option value="{{ year }}">{{ year }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Capacidad *</label>
+                            <input type="number" name="vehiculos[${index}][capacidad]" class="form-control" min="1" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Tipo de Servicio *</label>
+                            <select name="vehiculos[${index}][tipo_servicio]" class="form-select" required>
+                                <option value="">Seleccione servicio</option>
+                                <option value="Transporte de Estudiantes">Transporte de Estudiantes</option>
+                                <option value="Servicios Especiales">Servicios Especiales</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Propietario *</label>
+                            <input type="text" name="vehiculos[${index}][propietario]" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Conductor *</label>
+                            <input type="text" name="vehiculos[${index}][conductor]" class="form-control" required>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="vehiculos[${index}][estado]" id="vehiculo_estado_${index}" checked>
+                                <label class="form-check-label fw-bold" for="vehiculo_estado_${index}">Vehículo Activo</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+            
+        container.insertAdjacentHTML('beforeend', vehiculoHTML);
+        
+        // Si es el primer vehículo, actualizar el carnet
+        if (index === 0) {
+            actualizarCarnetVehiculos();
+        }
+    }
+    
+    // Función para eliminar un vehículo
+    function eliminarVehiculo(index) {
+        const vehiculo = document.getElementById(`vehiculo-${index}`);
+        if (vehiculo) {
+            vehiculo.remove();
+            actualizarCarnetVehiculos();
+        }
+    }
+    
+    // Actualizar la sección de vehículos en el carnet
+    function actualizarCarnetVehiculos() {
+        const vehiculos = [];
+        document.querySelectorAll('[name^="vehiculos["]').forEach(input => {
+            const match = input.name.match(/vehiculos\[(\d+)\]\[(\w+)\]/);
+            if (match) {
+                const index = match[1];
+                const field = match[2];
+                if (!vehiculos[index]) vehiculos[index] = {};
+                vehiculos[index][field] = input.value;
+            }
+        });
+        
+        // Actualizar el carnet
+        const vehiculosCarnet = document.getElementById('vehiculosCarnet');
+        if (vehiculosCarnet) {
+            vehiculosCarnet.innerHTML = '';
+            
+            vehiculos.forEach((vehiculo, index) => {
+                if (vehiculo.placa) {
+                    const vehiculoHTML = `
+                        <div class="carnet-vehiculo">
+                            <div class="d-flex justify-content-between">
+                                <span class="fw-bold">${vehiculo.placa}</span>
+                                <small>${vehiculo.marca} (${vehiculo.anio})</small>
+                            </div>
+                            <div class="small">${vehiculo.tipo_servicio} - ${vehiculo.capacidad} pax</div>
+                        </div>`;
+                    vehiculosCarnet.insertAdjacentHTML('beforeend', vehiculoHTML);
+                }
+            });
+        }
+    }
+
+    // Mostrar/ocultar sección de vehículos según selección
+    function toggleSeccionVehiculo() {
+        const tieneVehiculoSi = document.getElementById('tieneVehiculoSi');
+        const seccionVehiculo = document.getElementById('seccionVehiculo');
+        const container = document.getElementById('vehiculosContainer');
+        
+        if (tieneVehiculoSi.checked) {
+            seccionVehiculo.style.display = 'block';
+            // Si no hay vehículos, agregar uno automáticamente
+            if (container.children.length === 0) {
+                agregarVehiculo();
+            }
+        } else {
+            seccionVehiculo.style.display = 'none';
+        }
+    }
+    
+    // Inicializar al cargar la página
+    document.addEventListener('DOMContentLoaded', function() {
+        // Inicializar el estado de la sección de vehículos
+        toggleSeccionVehiculo();
+        
+        // Agregar evento para actualizar el carnet cuando cambien los datos de los vehículos
+        document.addEventListener('change', function(e) {
+            if (e.target && e.target.name && e.target.name.startsWith('vehiculos')) {
+                actualizarCarnetVehiculos();
+            }
+        });
+    });
+    
+    // Función para autocompletar datos del vehículo al seleccionar un conductor
+    function autocompletarVehiculo(conductorId) {
+        // Aquí puedes agregar lógica para autocompletar si ya existe un vehículo asociado
+        // Por ejemplo, hacer una petición AJAX para obtener los datos del vehículo
+        // y llenar los campos correspondientes
+        if (conductorId) {
+            // Ejemplo de cómo podría ser la llamada AJAX
+            /*
+            fetch(`/api/vehiculo-por-conductor/${conductorId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data) {
+                        document.querySelector('[name="vehiculo_placa"]').value = data.placa || '';
+                        document.querySelector('[name="vehiculo_marca"]').value = data.marca || '';
+                        // ... completar los demás campos
+                    }
+                });
+            */
+        }
+    }
+
+    // Llamar a autocompletarVehiculo cuando se selecciona un conductor
+    const conductorSelect = document.querySelector('select[onchange*="autocompletarConductor"]');
+    if (conductorSelect) {
+        conductorSelect.addEventListener('change', function() {
+            if (this.value) {
+                autocompletarVehiculo(this.value);
+            }
+        });
+    }
+
+    // Función para resetear la sección de vehículos
+    function resetVehicleSection() {
+        document.getElementById('tieneVehiculoNo').checked = true;
+        document.getElementById('seccionVehiculos').style.display = 'none';
+        document.getElementById('cantidadUnidades').value = '0';
+        document.getElementById('vehiculosContainer').innerHTML = '';
+    }
+
+    // Función para generar los campos de vehículos
+    function generarCamposVehiculos() {
+        const cantidad = document.getElementById('cantidadUnidades').value;
+        const container = document.getElementById('vehiculosContainer');
+        container.innerHTML = '';
+
+        if (cantidad == 0) {
+            container.innerHTML = `
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> No se han agregado vehículos.
+                </div>`;
+            return;
+        }
+
+        for (let i = 1; i <= cantidad; i++) {
+            const html = `
+                <div class="card mb-3 border-warning">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">Vehículo #${i}</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold">Marca *</label>
+                                <input type="text" name="marca[]" class="form-control form-control-sm" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold">Año *</label>
+                                <select name="anio[]" class="form-select form-select-sm" required>
+                                    <option value="">Seleccione año</option>
+                                    {% for year in range(2026, 1999, -1) %}
+                                        <option value="{{ year }}">{{ year }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold">Placa *</label>
+                                <input type="text" name="placa[]" class="form-control form-control-sm" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold">Capacidad (10-50) *</label>
+                                <input type="number" name="capacidad[]" class="form-control form-control-sm" min="10" max="50" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold">Tipo de Servicio *</label>
+                                <select name="tipo_servicio[]" class="form-select form-select-sm" required>
+                                    <option value="">Seleccione servicio</option>
+                                    <option value="Transporte de Estudiantes">Transporte de Estudiantes</option>
+                                    <option value="Servicios Especiales">Servicios Especiales</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold">Gravámenes *</label>
+                                <div class="d-flex gap-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="gravamenes[${i}]" id="gravamenNo_${i}" value="No" checked>
+                                        <label class="form-check-label" for="gravamenNo_${i}">No</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="gravamenes[${i}]" id="gravamenSi_${i}" value="Si">
+                                        <label class="form-check-label" for="gravamenSi_${i}">Sí</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Nombre del Propietario *</label>
+                                <input type="text" name="propietario[]" class="form-control form-control-sm" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Nombre del Conductor *</label>
+                                <input type="text" name="conductor[]" class="form-control form-control-sm" required>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            container.insertAdjacentHTML('beforeend', html);
+        }
+    }
 </script>
 
 <div class="d-flex justify-content-between align-items-center pt-3 pb-2 mb-3 border-bottom">
@@ -323,6 +594,33 @@
                     </div>
                     <input type="file" class="form-control form-control-sm rounded-pill" accept="image/*" onchange="handlePhotoUpload(event)">
                 </div>
+                <div class="col-12 mt-4">
+                    <hr class="border-warning">
+                    <h5 class="text-warning mb-3"><i class="bi bi-truck"></i> Información del Vehículo</h5>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">¿El colaborador cuenta con vehículo propio?</label>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="tiene_vehiculo" id="tieneVehiculoSi" value="Si" onchange="toggleSeccionVehiculo()">
+                            <label class="form-check-label" for="tieneVehiculoSi">Sí</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="tiene_vehiculo" id="tieneVehiculoNo" value="No" checked onchange="toggleSeccionVehiculo()">
+                            <label class="form-check-label" for="tieneVehiculoNo">No</label>
+                        </div>
+                    </div>
+
+                    <div id="seccionVehiculo" style="display: none;">
+                        <div id="vehiculosContainer">
+                            <!-- Los vehículos se agregarán aquí dinámicamente -->
+                        </div>
+                        <div class="text-end mt-3">
+                            <button type="button" class="btn btn-sm btn-outline-warning" onclick="agregarVehiculo()">
+                                <i class="bi bi-plus-circle"></i> Agregar Otro Vehículo
+                            </button>
+                        </div>
+                    </div>
+                </div>
                 <div class="col-12 text-end pt-3 border-top">
                     <button type="submit" class="btn btn-warning px-5 fw-bold rounded-pill shadow-sm">
                         <span id="btn-submit-text">Guardar Colaborador</span>
@@ -389,8 +687,10 @@
                             <div class="col-6 carnet-field"><span class="carnet-label">Licencia</span><span class="carnet-value" id="cLicencia"></span></div>
                         </div>
                         <div class="carnet-field"><span class="carnet-label">Móvil</span><span class="carnet-value" id="cMovil"></span></div>
-                        <!-- Campo Email Restaurado para evitar errores de JS -->
                         <div class="carnet-field"><span class="carnet-label">Email</span><span class="carnet-value small" id="cEmail"></span></div>
+                        <div class="carnet-field mt-2" id="vehiculosCarnet">
+                            <!-- Aquí se mostrarán los vehículos -->
+                        </div>
                     </div>
                 </div>
                 <div class="carnet-footer"><span id="cId"></span><span>TRANSAVI</span></div>

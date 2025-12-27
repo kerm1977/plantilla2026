@@ -84,12 +84,50 @@
 {% endblock %}
 
 {% block scripts %}
+<!-- Load jQuery first -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- Then load DataTables -->
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+
+<!-- Toast Containers -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div id="toastMessage" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header bg-success text-white">
+            <strong class="me-auto">Éxito</strong>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+        </div>
+        <div class="toast-body" id="toastMessageText"></div>
+    </div>
+    
+    <div id="errorToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header bg-danger text-white">
+            <strong class="me-auto">Error</strong>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+        </div>
+        <div class="toast-body" id="errorToastText"></div>
+    </div>
+</div>
+
 <script>
+// Debug: Check if jQuery is loaded
+console.log('jQuery version:', typeof $ !== 'undefined' ? $.fn.jquery : 'jQuery not loaded!');
+
+// Simple test function
+function testClick() {
+    console.log('Button clicked!');
+    alert('Button click works!');
+    return false;
+}
+
+// Wait for the document to be fully loaded
 $(document).ready(function() {
-    // Inicializar tooltips
+    console.log('Document ready');
+    
+    // Initialize tooltips
     $('[data-bs-toggle="tooltip"]').tooltip();
     
-    // Inicializar DataTables
+    // Initialize DataTables
     const table = $('table').DataTable({
         "order": [[0, "desc"]],
         "language": {
@@ -97,59 +135,36 @@ $(document).ready(function() {
         },
         "pageLength": 25,
         "columnDefs": [
-            { "orderable": false, "targets": [4] } // Deshabilitar ordenación en la columna de acciones
+            { "orderable": false, "targets": [4] }
         ]
     });
 
-    // Manejar el clic en el botón de ocultar/mostrar
-    $(document).on('click', '.toggle-visibility', function() {
-        const button = $(this);
-        const messageId = button.data('message-id');
+    // Test click handler
+    $('.toggle-visibility').on('click', function(e) {
+        e.preventDefault();
+        console.log('Toggle visibility clicked');
         
-        $.ajax({
-            url: `/admin/message/toggle-visibility/${messageId}`,
-            method: 'POST',
-            success: function(response) {
-                if (response.success) {
-                    // Actualizar la interfaz
-                    const row = button.closest('tr');
-                    if (response.is_hidden) {
-                        row.addClass('table-secondary text-muted');
-                        button.removeClass('btn-outline-secondary').addClass('btn-outline-success');
-                        button.html('<i class="bi bi-eye"></i> Mostrar');
-                        button.attr('title', 'Mostrar en el historial');
-                        // Actualizar el badge
-                        row.find('.badge')
-                            .removeClass('bg-primary')
-                            .addClass('bg-secondary');
-                    } else {
-                        row.removeClass('table-secondary text-muted');
-                        button.removeClass('btn-outline-success').addClass('btn-outline-secondary');
-                        button.html('<i class="bi bi-eye-slash"></i> Ocultar');
-                        button.attr('title', 'Ocultar del historial');
-                        // Actualizar el badge
-                        row.find('.badge')
-                            .removeClass('bg-secondary')
-                            .addClass('bg-primary');
-                    }
-                    
-                    // Recargar la tabla para actualizar el orden
-                    table.draw();
-                    
-                    // Mostrar notificación
-                    const toast = new bootstrap.Toast($('#toast'));
-                    $('.toast-body').text(response.message);
-                    toast.show();
-                }
-            },
-            error: function(xhr) {
-                const error = xhr.responseJSON?.error || 'Error al actualizar la visibilidad del mensaje';
-                alert(error);
+        const messageId = $(this).data('message-id');
+        const button = $(this);
+        console.log('Message ID:', messageId);
+        
+        if (!messageId) {
+            console.error('No message ID found');
+            return;
+        }
+        
+        const isHiding = !button.hasClass('btn-outline-success');
+        
+        if (isHiding) {
+            if (confirm('¿Estás seguro de que deseas ocultar este mensaje del historial?')) {
+                toggleMessageVisibility(messageId, button);
             }
-        });
+        } else {
+            toggleMessageVisibility(messageId, button);
+        }
     });
-
-    // Manejar el clic en el botón de recuperar todos
+    
+    // Handle restore all button
     $('#restoreAllBtn').on('click', function() {
         if (confirm('¿Estás seguro de que deseas recuperar todos los mensajes ocultos?')) {
             $.ajax({
@@ -157,29 +172,78 @@ $(document).ready(function() {
                 method: 'POST',
                 success: function(response) {
                     if (response.success) {
-                        // Recargar la página para mostrar los cambios
                         window.location.reload();
+                    } else {
+                        showError(response.error || 'Error al recuperar los mensajes');
                     }
                 },
                 error: function(xhr) {
                     const error = xhr.responseJSON?.error || 'Error al recuperar los mensajes';
-                    alert(error);
+                    showError(error);
                 }
             });
         }
     });
 });
-</script>
 
-<!-- Toast para notificaciones -->
-<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
-    <div id="toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-        <div class="toast-header">
-            <strong class="me-auto">Sistema</strong>
-            <small>Ahora</small>
-            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Cerrar"></button>
-        </div>
-        <div class="toast-body"></div>
-    </div>
-</div>
+// Function to toggle message visibility
+function toggleMessageVisibility(messageId, button) {
+    console.log('toggleMessageVisibility called with messageId:', messageId);
+    $.ajax({
+        url: `/admin/message/toggle-visibility/${messageId}`,
+        method: 'POST',
+        success: function(response) {
+            console.log('AJAX success:', response);
+            if (response.success) {
+                updateMessageRow(button, response.is_hidden);
+                showToast('success', response.is_hidden ? 'Mensaje ocultado correctamente' : 'Mensaje mostrado correctamente');
+            } else {
+                showError('Error: ' + (response.error || 'Error desconocido'));
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('AJAX error:', status, error);
+            showError('Error en la solicitud. Inténtalo de nuevo.');
+        }
+    });
+}
+
+// Update the message row UI
+function updateMessageRow(button, isHidden) {
+    console.log('Updating row, isHidden:', isHidden);
+    const row = button.closest('tr');
+    
+    if (isHidden) {
+        row.addClass('table-secondary text-muted');
+        button.removeClass('btn-outline-secondary').addClass('btn-outline-success');
+        button.html('<i class="bi bi-eye"></i> Mostrar');
+        button.attr('title', 'Mostrar en el historial');
+        button.attr('data-bs-original-title', 'Mostrar en el historial');
+        row.find('.badge').removeClass('bg-primary').addClass('bg-secondary');
+    } else {
+        row.removeClass('table-secondary text-muted');
+        button.removeClass('btn-outline-success').addClass('btn-outline-secondary');
+        button.html('<i class="bi bi-eye-slash"></i> Ocultar');
+        button.attr('title', 'Ocultar del historial');
+        button.attr('data-bs-original-title', 'Ocultar del historial');
+        row.find('.badge').removeClass('bg-secondary').addClass('bg-primary');
+    }
+    button.tooltip('dispose').tooltip();
+}
+
+// Show toast notification
+function showToast(type, message) {
+    const toastEl = document.getElementById(type === 'success' ? 'toastMessage' : 'errorToast');
+    const toast = new bootstrap.Toast(toastEl);
+    const toastBody = toastEl.querySelector('.toast-body');
+    toastBody.textContent = message;
+    toast.show();
+}
+
+// Show error message
+function showError(message) {
+    console.error('Error:', message);
+    showToast('error', message);
+}
+</script>
 {% endblock %}

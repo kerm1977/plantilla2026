@@ -1,0 +1,258 @@
+<!-- manage_vehicles.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="bi bi-truck text-warning me-2"></i>Gestión de Vehículos</h1>
+    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-dark rounded-pill shadow-sm">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+</div>
+
+<!-- Pestañas de Navegación -->
+<ul class="nav nav-tabs mb-4" id="vehiclesTab" role="tablist">
+    <li class="nav-item" role="presentation">
+        <a class="nav-link active" id="list-tab" data-bs-toggle="tab" href="#list" role="tab" aria-controls="list" aria-selected="true">
+            <i class="bi bi-list-ul me-1"></i> Lista de Vehículos
+        </a>
+    </li>
+    <li class="nav-item" role="presentation">
+        <a class="nav-link" id="add-tab" data-bs-toggle="tab" href="#add" role="tab" aria-controls="add" aria-selected="false">
+            <i class="bi bi-plus-circle me-1"></i> Agregar Vehículo
+        </a>
+    </li>
+</ul>
+
+<!-- Contenido de las pestañas -->
+<div class="tab-content" id="vehiclesTabContent">
+    <!-- Pestaña de Lista -->
+    <div class="tab-pane fade show active" id="list" role="tabpanel" aria-labelledby="list-tab">
+        <div class="card shadow-sm rounded-4 border-0 overflow-hidden">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped align-middle mb-0">
+                        <thead class="table-dark text-warning">
+                            <tr>
+                                <th>Placa</th>
+                                <th>Marca</th>
+                                <th>Año</th>
+                                <th>Capacidad</th>
+                                <th>Propietario</th>
+                                <th>Conductor</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for vehicle in vehicles %}
+                            <tr>
+                                <td class="fw-bold">{{ vehicle.placa }}</td>
+                                <td>{{ vehicle.marca }}</td>
+                                <td>{{ vehicle.anio }}</td>
+                                <td>{{ vehicle.capacidad }}</td>
+                                <td>{{ vehicle.propietario }}</td>
+                                <td>{{ vehicle.conductor }}</td>
+                                <td>
+                                    <span class="badge {% if vehicle.estado == 'Activo' %}bg-success{% else %}bg-secondary{% endif %}">
+                                        {{ vehicle.estado }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-warning" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#editVehicleModal"
+                                                data-id="{{ vehicle.id }}"
+                                                data-placa="{{ vehicle.placa }}"
+                                                data-marca="{{ vehicle.marca }}"
+                                                data-anio="{{ vehicle.anio }}"
+                                                data-capacidad="{{ vehicle.capacidad }}"
+                                                data-propietario="{{ vehicle.propietario }}"
+                                                data-conductor="{{ vehicle.conductor }}"
+                                                data-estado="{{ vehicle.estado }}">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <a href="#" class="btn btn-outline-danger" 
+                                           onclick="return confirm('¿Está seguro de eliminar este vehículo?')">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pestaña de Agregar -->
+    <div class="tab-pane fade" id="add" role="tabpanel" aria-labelledby="add-tab">
+        <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+            <div class="card-body">
+                <form action="{{ url_for('vehicles.add_vehicle') }}" method="POST">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Placa del Vehículo *</label>
+                            <input type="text" name="placa" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Marca *</label>
+                            <input type="text" name="marca" class="form-control" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Año *</label>
+                            <select name="anio" class="form-select" required>
+                                <option value="">Seleccione año</option>
+                                {% for year in range(2026, 1999, -1) %}
+                                    <option value="{{ year }}">{{ year }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Capacidad *</label>
+                            <input type="number" name="capacidad" class="form-control" min="1" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Tipo de Servicio *</label>
+                            <select name="tipo_servicio" class="form-select" required>
+                                <option value="">Seleccione servicio</option>
+                                <option value="Transporte de Estudiantes">Transporte de Estudiantes</option>
+                                <option value="Servicios Especiales">Servicios Especiales</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Propietario *</label>
+                            <input type="text" name="propietario" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Conductor *</label>
+                            <select name="conductor_id" class="form-select" required>
+                                <option value="">Seleccione conductor</option>
+                                {% for worker in workers %}
+                                    <option value="{{ worker.id }}">{{ worker.nombre }} ({{ worker.cedula }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="estado" id="estado" checked>
+                                <label class="form-check-label fw-bold" for="estado">Vehículo Activo</label>
+                            </div>
+                        </div>
+                        <div class="col-12 text-end">
+                            <button type="reset" class="btn btn-outline-secondary me-2">
+                                <i class="bi bi-x-circle"></i> Cancelar
+                            </button>
+                            <button type="submit" class="btn btn-warning">
+                                <i class="bi bi-save"></i> Guardar Vehículo
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Edición -->
+<div class="modal fade" id="editVehicleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-warning">
+                <h5 class="modal-title">Editar Vehículo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editVehicleForm" method="POST">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Placa del Vehículo *</label>
+                            <input type="text" name="placa" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Marca *</label>
+                            <input type="text" name="marca" class="form-control" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Año *</label>
+                            <select name="anio" class="form-select" required>
+                                {% for year in range(2026, 1999, -1) %}
+                                    <option value="{{ year }}">{{ year }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Capacidad *</label>
+                            <input type="number" name="capacidad" class="form-control" min="1" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Tipo de Servicio *</label>
+                            <select name="tipo_servicio" class="form-select" required>
+                                <option value="Transporte de Estudiantes">Transporte de Estudiantes</option>
+                                <option value="Servicios Especiales">Servicios Especiales</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Propietario *</label>
+                            <input type="text" name="propietario" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Conductor *</label>
+                            <select name="conductor_id" class="form-select" required>
+                                {% for worker in workers %}
+                                    <option value="{{ worker.id }}">{{ worker.nombre }} ({{ worker.cedula }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="estado" id="editEstado">
+                                <label class="form-check-label fw-bold" for="editEstado">Vehículo Activo</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="bi bi-save"></i> Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Script para manejar el modal de edición
+document.addEventListener('DOMContentLoaded', function() {
+    const editModal = document.getElementById('editVehicleModal');
+    if (editModal) {
+        editModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const form = document.getElementById('editVehicleForm');
+            
+            // Actualizar el action del formulario con el ID del vehículo
+            const vehicleId = button.getAttribute('data-id');
+            form.action = `/vehicles/edit/${vehicleId}`;
+            
+            // Llenar los campos del formulario con los datos del vehículo
+            form.querySelector('[name="placa"]').value = button.getAttribute('data-placa');
+            form.querySelector('[name="marca"]').value = button.getAttribute('data-marca');
+            form.querySelector('[name="anio"]').value = button.getAttribute('data-anio');
+            form.querySelector('[name="capacidad"]').value = button.getAttribute('data-capacidad');
+            form.querySelector('[name="propietario"]').value = button.getAttribute('data-propietario');
+            form.querySelector('[name="conductor_id"]').value = button.getAttribute('data-conductor');
+            
+            // Establecer el estado del switch
+            const estado = button.getAttribute('data-estado') === 'Activo';
+            document.getElementById('editEstado').checked = estado;
+        });
+    }
+});
+</script>
+{% endblock %}

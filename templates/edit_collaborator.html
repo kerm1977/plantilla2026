@@ -14,6 +14,16 @@
                     <!-- DATOS DEL CONDUCTOR -->
                     <h5 class="text-dark border-bottom border-warning pb-2 mb-3 fw-bold">Datos del Conductor</h5>
                     <div class="row g-3">
+                        <div class="col-md-12 mb-3">
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="tiene_vehiculo" id="tieneVehiculoSi" value="Si" {% if conductor.tiene_vehiculo == 'Si' %}checked{% endif %} required>
+                                <label class="form-check-label fw-bold" for="tieneVehiculoSi">Cuenta con vehículo propio</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="tiene_vehiculo" id="tieneVehiculoNo" value="No" {% if not conductor.tiene_vehiculo or conductor.tiene_vehiculo == 'No' %}checked{% endif %}>
+                                <label class="form-check-label fw-bold" for="tieneVehiculoNo">No cuenta con vehículo propio</label>
+                            </div>
+                        </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Nombre del Conductor *</label>
                             <input type="text" name="nombre" class="form-control" value="{{ conductor.nombre }}" required>
@@ -44,16 +54,25 @@
                         </div>
                     </div>
 
-                    <!-- SELECCIÓN DE UNIDADES -->
+                    <!-- CANTIDAD DE VEHÍCULOS -->
                     <div class="my-4 p-3 bg-light rounded border border-warning-subtle">
-                        <label class="form-label fw-bold fs-5">¿Con cuántas unidades cuenta?</label>
-                        <select id="cantidadUnidades" name="cantidad_unidades" class="form-select form-select-lg" onchange="generarCamposVehiculos()">
-                            <option value="0">Seleccione una cantidad...</option>
-                            {% for i in range(1, 11) %}
-                                <option value="{{ i }}" {% if conductor.cantidad_unidades == i %}selected{% endif %}>{{ i }} Unidad{{ 'es' if i > 1 else '' }}</option>
-                            {% endfor %}
-                        </select>
-                        <div class="form-text text-muted">Si cambias la cantidad, los datos de los vehículos podrían reiniciarse.</div>
+                        <label class="form-label fw-bold fs-5 d-block mb-3">Cantidad de vehículos *</label>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <select id="cantidadUnidades" name="cantidad_unidades" class="form-select form-select-lg" onchange="generarCamposVehiculos()" required>
+                                    <option value="0">Seleccione una cantidad...</option>
+                                    {% for i in range(1, 11) %}
+                                        <option value="{{ i }}" {% if conductor.cantidad_unidades == i %}selected{% endif %}>{{ i }} Vehículo{{ 's' if i > 1 else '' }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text text-muted">Si cambias la cantidad, los datos de los vehículos podrían reiniciarse.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="alert alert-info mb-0 py-2">
+                                    <i class="bi bi-info-circle"></i> Campos marcados con * son obligatorios
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- CONTENEDOR DE VEHÍCULOS (Precargado con Jinja2) -->
@@ -66,20 +85,21 @@
                             <div class="card-body bg-light">
                                 <div class="row g-3">
                                     <div class="col-md-3">
-                                        <label class="form-label fw-bold">Marca</label>
+                                        <label class="form-label fw-bold">Marca *</label>
                                         <input type="text" name="marca[]" class="form-control" value="{{ v.marca }}" required>
                                     </div>
                                     <div class="col-md-3">
-                                        <label class="form-label fw-bold">Año</label>
-                                        <select name="anio[]" class="form-select">
+                                        <label class="form-label fw-bold">Año *</label>
+                                        <select name="anio[]" class="form-select" required>
+                                            <option value="">Seleccione año</option>
                                             {% for year in range(2026, 1999, -1) %}
                                                 <option value="{{ year }}" {% if v.anio == year %}selected{% endif %}>{{ year }}</option>
                                             {% endfor %}
                                         </select>
                                     </div>
                                     <div class="col-md-3">
-                                        <label class="form-label fw-bold">Capacidad</label>
-                                        <input type="number" name="capacidad[]" class="form-control" value="{{ v.capacidad }}" min="8" max="50" required>
+                                        <label class="form-label fw-bold">Capacidad (10-50) *</label>
+                                        <input type="number" name="capacidad[]" class="form-control" value="{{ v.capacidad }}" min="10" max="50" required>
                                     </div>
                                     <div class="col-md-3">
                                         <label class="form-label fw-bold">Placa</label>
@@ -87,8 +107,9 @@
                                     </div>
                                     
                                     <div class="col-md-4">
-                                        <label class="form-label fw-bold">Tipo de Servicio</label>
-                                        <select name="tipo_servicio[]" class="form-select">
+                                        <label class="form-label fw-bold">Tipo de Servicio *</label>
+                                        <select name="tipo_servicio[]" class="form-select" required>
+                                            <option value="">Seleccione servicio</option>
                                             <option value="Transporte de Estudiantes" {% if v.tipo_servicio == 'Transporte de Estudiantes' %}selected{% endif %}>Transporte de Estudiantes</option>
                                             <option value="Servicios Especiales" {% if v.tipo_servicio == 'Servicios Especiales' %}selected{% endif %}>Servicios Especiales</option>
                                         </select>
@@ -112,10 +133,18 @@
                                             <option value="No" {% if v.al_dia == 'No' %}selected{% endif %}>No</option>
                                         </select>
                                     </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">Nombre del Propietario *</label>
+                                        <input type="text" name="propietario[]" class="form-control" value="{{ v.propietario }}" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">Nombre del Conductor *</label>
+                                        <input type="text" name="conductor[]" class="form-control" value="{{ v.conductor }}" required>
+                                    </div>
                                     <div class="col-md-4">
-                                        <label class="form-label fw-bold">Gravámenes</label>
-                                        <select name="gravamenes[]" class="form-select" onchange="toggleGravamen(this, {{ loop.index }})">
-                                            <option value="No" {% if v.tiene_gravamenes == 'No' %}selected{% endif %}>No</option>
+                                        <label class="form-label fw-bold">Gravámenes *</label>
+                                        <select name="gravamenes[]" class="form-select" onchange="toggleGravamen(this, {{ loop.index }})" required>
+                                            <option value="No" {% if v.tiene_gravamenes != 'Si' %}selected{% endif %}>No</option>
                                             <option value="Si" {% if v.tiene_gravamenes == 'Si' %}selected{% endif %}>Sí</option>
                                         </select>
                                     </div>
@@ -123,7 +152,6 @@
                                         <label class="form-label text-danger fw-bold">Detalle del Gravamen</label>
                                         <textarea name="detalle_gravamen[]" class="form-control border-danger" rows="2">{{ v.detalle_gravamen or '' }}</textarea>
                                     </div>
-                                    <input type="hidden" name="detalle_gravamen[]" value="" {% if v.tiene_gravamenes == 'Si' %}disabled{% endif %} id="hiddenGravamen_{{ loop.index }}">
                                 </div>
                             </div>
                         </div>

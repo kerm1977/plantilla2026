@@ -464,7 +464,8 @@ def toggle_message_visibility(message_id):
     
     message = Message.query.get_or_404(message_id)
     
-    if message.sender_id != current_user.id:
+    # Solo el remitente o un administrador pueden modificar la visibilidad
+    if message.sender_id != current_user.id and current_user.role not in ['superuser', 'admin']:
         return jsonify({'success': False, 'error': 'No autorizado'}), 403
     
     try:
@@ -477,7 +478,10 @@ def toggle_message_visibility(message_id):
         })
     except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 @app.route('/admin/message/restore-all', methods=['POST'])
 @login_required

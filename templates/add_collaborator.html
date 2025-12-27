@@ -13,9 +13,18 @@
                 <form method="POST" action="{{ url_for('workers.add_worker') }}">
                     
                     <!-- DATOS DEL CONDUCTOR -->
-                    <!-- CAMBIO DE COLOR: Borde amarillo y texto oscuro -->
                     <h5 class="text-dark border-bottom border-warning pb-2 mb-3 fw-bold">Datos del Conductor</h5>
                     <div class="row g-3">
+                        <div class="col-md-12 mb-3">
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="tiene_vehiculo" id="tieneVehiculoSi" value="Si" required>
+                                <label class="form-check-label fw-bold" for="tieneVehiculoSi">Cuenta con vehículo propio</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="tiene_vehiculo" id="tieneVehiculoNo" value="No" checked>
+                                <label class="form-check-label fw-bold" for="tieneVehiculoNo">No cuenta con vehículo propio</label>
+                            </div>
+                        </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Nombre del Conductor *</label>
                             <input type="text" name="nombre" class="form-control" required>
@@ -35,7 +44,6 @@
                                 <option value="C2">C2</option>
                             </select>
                         </div>
-                        <!-- Campos Categoría Letra y Número ELIMINADOS COMPLETAMENTE AQUÍ -->
                         <div class="col-md-4">
                             <label class="form-label">Teléfono Fijo</label>
                             <input type="text" name="telefono_fijo" class="form-control">
@@ -50,15 +58,24 @@
                         </div>
                     </div>
 
-                    <!-- SELECCIÓN DE UNIDADES -->
+                    <!-- CANTIDAD DE VEHÍCULOS -->
                     <div class="my-4 p-3 bg-light rounded border border-warning-subtle">
-                        <label class="form-label fw-bold fs-5">¿Con cuántas unidades cuenta?</label>
-                        <select id="cantidadUnidades" name="cantidad_unidades" class="form-select form-select-lg" onchange="generarCamposVehiculos()">
-                            <option value="0">Seleccione una cantidad...</option>
-                            {% for i in range(1, 11) %}
-                                <option value="{{ i }}">{{ i }} Unidad{{ 'es' if i > 1 else '' }}</option>
-                            {% endfor %}
-                        </select>
+                        <label class="form-label fw-bold fs-5 d-block mb-3">Cantidad de vehículos *</label>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <select id="cantidadUnidades" name="cantidad_unidades" class="form-select form-select-lg" onchange="generarCamposVehiculos()" required>
+                                    <option value="0">Seleccione una cantidad...</option>
+                                    {% for i in range(1, 11) %}
+                                        <option value="{{ i }}">{{ i }} Vehículo{{ 's' if i > 1 else '' }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="alert alert-info mb-0 py-2">
+                                    <i class="bi bi-info-circle"></i> Campos marcados con * son obligatorios
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- CONTENEDOR DINÁMICO DE VEHÍCULOS -->
@@ -81,6 +98,15 @@
         const container = document.getElementById('vehiculosContainer');
         container.innerHTML = ''; // Limpiar contenedor
 
+        // Mostrar mensaje si no hay vehículos
+        if (cantidad == 0) {
+            container.innerHTML = `
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> No se han agregado vehículos. Seleccione una cantidad mayor a 0 para agregar vehículos.
+                </div>`;
+            return;
+        }
+
         if (cantidad > 0) {
             for (let i = 1; i <= cantidad; i++) {
                 const html = `
@@ -90,66 +116,84 @@
                         </div>
                         <div class="card-body bg-light">
                             <div class="row g-3">
-                                <div class="col-md-3">
-                                    <label class="form-label fw-bold">Marca</label>
-                                    <input type="text" name="marca[]" class="form-control" required>
+                                <!-- Primera fila -->
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">Marca *</label>
+                                    <input type="text" name="marca[]" class="form-control form-control-lg" required>
                                 </div>
-                                <div class="col-md-3">
-                                    <label class="form-label fw-bold">Año</label>
-                                    <select name="anio[]" class="form-select">
+                                
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">Año *</label>
+                                    <select name="anio[]" class="form-select form-select-lg" required>
+                                        <option value="">Seleccione año</option>
                                         {% for year in range(2026, 1999, -1) %}
                                             <option value="{{ year }}">{{ year }}</option>
                                         {% endfor %}
                                     </select>
                                 </div>
-                                <div class="col-md-3">
-                                    <label class="form-label fw-bold">Capacidad</label>
-                                    <input type="number" name="capacidad[]" class="form-control" min="8" max="50" placeholder="8-50" required>
+                                
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">Placa *</label>
+                                    <input type="text" name="placa[]" class="form-control form-control-lg" required>
                                 </div>
-                                <div class="col-md-3">
-                                    <label class="form-label fw-bold">Placa</label>
-                                    <input type="text" name="placa[]" class="form-control" required>
+                                
+                                <!-- Segunda fila -->
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">Capacidad (10-50) *</label>
+                                    <input type="number" name="capacidad[]" class="form-control form-control-lg" min="10" max="50" required>
                                 </div>
                                 
                                 <div class="col-md-4">
-                                    <label class="form-label fw-bold">Tipo de Servicio</label>
-                                    <select name="tipo_servicio[]" class="form-select">
+                                    <label class="form-label fw-bold">Tipo de Servicio *</label>
+                                    <select name="tipo_servicio[]" class="form-select form-select-lg" required>
+                                        <option value="">Seleccione servicio</option>
                                         <option value="Transporte de Estudiantes">Transporte de Estudiantes</option>
                                         <option value="Servicios Especiales">Servicios Especiales</option>
                                     </select>
                                 </div>
+                                
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">Gravámenes *</label>
+                                    <div class="btn-group w-100" role="group">
+                                        <input type="radio" class="btn-check" name="gravamenes[${i}]" id="gravamenNo_${i}" value="No" autocomplete="off" checked onchange="toggleGravamen(this, ${i})">
+                                        <label class="btn btn-outline-primary" for="gravamenNo_${i}">No</label>
+                                        
+                                        <input type="radio" class="btn-check" name="gravamenes[${i}]" id="gravamenSi_${i}" value="Si" autocomplete="off" onchange="toggleGravamen(this, ${i})">
+                                        <label class="btn btn-outline-primary" for="gravamenSi_${i}">Sí</label>
+                                    </div>
+                                </div>
+                                
+                                <!-- Tercera fila - Detalle del Gravamen -->
+                                <div class="col-md-12" id="detalleGravamenDiv_${i}" style="display: none;">
+                                    <label class="form-label fw-bold text-danger">Detalle del Gravamen *</label>
+                                    <textarea name="detalle_gravamen[]" class="form-control form-control-lg" rows="2" placeholder="Especifique el gravamen..."></textarea>
+                                </div>
+                                <input type="hidden" name="detalle_gravamen[]" value="" disabled id="hiddenGravamen_${i}">
+                                
+                                <!-- Cuarta fila - Propietario y Conductor -->
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Nombre del Propietario *</label>
+                                    <input type="text" name="propietario[]" class="form-control form-control-lg" required>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Nombre del Conductor *</label>
+                                    <input type="text" name="conductor[]" class="form-control form-control-lg" required>
+                                </div>
+                                
+                                <!-- Quinta fila - Información Adicional -->
                                 <div class="col-md-4">
                                     <label class="form-label fw-bold">Color</label>
-                                    <input type="text" name="color[]" class="form-control">
+                                    <input type="text" name="color[]" class="form-control form-control-lg">
                                 </div>
+                                
                                 <div class="col-md-4">
-                                    <label class="form-label fw-bold">Cuenta con Póliza</label>
-                                    <select name="poliza[]" class="form-select">
+                                    <label class="form-label fw-bold">¿Tiene póliza al día?</label>
+                                    <select name="poliza[]" class="form-select form-select-lg">
                                         <option value="Si">Sí</option>
                                         <option value="No">No</option>
                                     </select>
                                 </div>
-
-                                <div class="col-md-4">
-                                    <label class="form-label fw-bold">Al día</label>
-                                    <select name="al_dia[]" class="form-select">
-                                        <option value="Si">Sí</option>
-                                        <option value="No">No</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label fw-bold">Gravámenes</label>
-                                    <select name="gravamenes[]" class="form-select" onchange="toggleGravamen(this, ${i})">
-                                        <option value="No">No</option>
-                                        <option value="Si">Sí</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-12" id="detalleGravamenDiv_${i}" style="display: none;">
-                                    <label class="form-label text-danger fw-bold">Detalle del Gravamen</label>
-                                    <textarea name="detalle_gravamen[]" class="form-control border-danger" rows="2" placeholder="Especifique el gravamen..."></textarea>
-                                </div>
-                                <!-- Input oculto para mantener sincronía si está oculto -->
-                                <input type="hidden" name="detalle_gravamen[]" value="" disabled id="hiddenGravamen_${i}">
                             </div>
                         </div>
                     </div>
@@ -161,19 +205,45 @@
 
     function toggleGravamen(selectElement, index) {
         const detalleDiv = document.getElementById(`detalleGravamenDiv_${index}`);
-        const textarea = detalleDiv.querySelector('textarea');
+        const textarea = detalleDiv ? detalleDiv.querySelector('textarea') : null;
         const hiddenInput = document.getElementById(`hiddenGravamen_${index}`);
+        const isGravamenSi = selectElement.value === 'Si';
 
-        if (selectElement.value === 'Si') {
-            detalleDiv.style.display = 'block';
-            textarea.required = true;
-            textarea.disabled = false;
-            hiddenInput.disabled = true; // Desactivar hidden para enviar el textarea
-        } else {
-            detalleDiv.style.display = 'none';
-            textarea.required = false;
-            textarea.disabled = true; // Desactivar textarea para no enviar basura
-            hiddenInput.disabled = false; // Activar hidden vacío para mantener orden en el array del backend
+        if (detalleDiv) {
+            detalleDiv.style.display = isGravamenSi ? 'block' : 'none';
+        }
+        
+        if (textarea) {
+            textarea.required = isGravamenSi;
+            textarea.disabled = !isGravamenSi;
+            if (!isGravamenSi) {
+                textarea.value = '';
+            }
+        }
+        
+        if (hiddenInput) {
+            hiddenInput.disabled = isGravamenSi;
+            if (!isGravamenSi) {
+                hiddenInput.value = '';
+            }
+        }
+        
+        // Actualizar estilos de los botones
+        const siBtn = document.querySelector(`label[for="gravamenSi_${index}"]`);
+        const noBtn = document.querySelector(`label[for="gravamenNo_${index}"]`);
+        
+        if (siBtn && noBtn) {
+            if (isGravamenSi) {
+                siBtn.classList.remove('btn-outline-primary');
+                siBtn.classList.add('btn-primary');
+                noBtn.classList.remove('btn-primary');
+                noBtn.classList.add('btn-outline-primary');
+            } else {
+                noBtn.classList.remove('btn-outline-primary');
+                noBtn.classList.add('btn-primary');
+                siBtn.classList.remove('btn-primary');
+                siBtn.classList.add('btn-outline-primary');
+            }
         }
     }
 </script>
