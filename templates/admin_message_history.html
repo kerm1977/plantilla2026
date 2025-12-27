@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-chat-left-text me-2"></i>Historial de Mensajes Enviados</h2>
+        <div>
+            <a href="{{ url_for('admin_message_history', show_hidden=not show_hidden) }}" class="btn {% if show_hidden %}btn-warning{% else %}btn-outline-secondary{% endif %} me-2">
+                <i class="bi {% if show_hidden %}bi-eye-slash{% else %}bi-eye{% endif %}"></i>
+                {{ 'Ocultar mensajes ocultos' if show_hidden else 'Mostrar mensajes ocultos' }}
+            </a>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Volver al Dashboard
+            </a>
+        </div>
+    </div>
+
+    {% if show_hidden %}
+    <div class="alert alert-warning mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                Estás viendo los mensajes ocultos. 
+                <button id="restoreAllBtn" class="btn btn-sm btn-outline-primary ms-2">
+                    <i class="bi bi-arrow-counterclockwise"></i> Recuperar todos los mensajes
+                </button>
+            </div>
+            <a href="{{ url_for('admin_message_history') }}" class="btn-close"></a>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if sent_messages %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Asunto</th>
+                        <th>Mensaje</th>
+                        <th>Destinatario</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for msg in sent_messages %}
+                    <tr class="{% if msg.is_hidden %}table-secondary text-muted{% endif %}" data-message-id="{{ msg.id }}">
+                        <td>{{ msg.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>{{ msg.subject }}</td>
+                        <td>{{ msg.body|truncate(100) }}</td>
+                        <td>
+                            <span class="badge bg-{% if msg.is_hidden %}secondary{% else %}primary{% endif %}">
+                                {{ msg.recipient.nombre if msg.recipient.user_type == 'Persona' else msg.recipient.nombre_empresa }}
+                            </span>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm {% if msg.is_hidden %}btn-outline-success{% else %}btn-outline-secondary{% endif %} toggle-visibility" 
+                                    data-message-id="{{ msg.id }}"
+                                    data-bs-toggle="tooltip" 
+                                    title="{% if msg.is_hidden %}Mostrar en el historial{% else %}Ocultar del historial{% endif %}">
+                                <i class="bi {% if msg.is_hidden %}bi-eye{% else %}bi-eye-slash{% endif %}"></i>
+                                {{ 'Mostrar' if msg.is_hidden else 'Ocultar' }}
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> 
+            {% if show_hidden %}
+                No hay mensajes ocultos.
+            {% else %}
+                No hay mensajes para mostrar. 
+                {% if not show_hidden %}
+                    <a href="{{ url_for('admin_message_history', show_hidden=true) }}" class="alert-link">Ver mensajes ocultos</a>
+                {% endif %}
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Inicializar tooltips
+    $('[data-bs-toggle="tooltip"]').tooltip();
+    
+    // Inicializar DataTables
+    const table = $('table').DataTable({
+        "order": [[0, "desc"]],
+        "language": {
+            "url": "//cdn.datatables.net/plug-ins/1.13.4/i18n/es-ES.json"
+        },
+        "pageLength": 25,
+        "columnDefs": [
+            { "orderable": false, "targets": [4] } // Deshabilitar ordenación en la columna de acciones
+        ]
+    });
+
+    // Manejar el clic en el botón de ocultar/mostrar
+    $(document).on('click', '.toggle-visibility', function() {
+        const button = $(this);
+        const messageId = button.data('message-id');
+        
+        $.ajax({
+            url: `/admin/message/toggle-visibility/${messageId}`,
+            method: 'POST',
+            success: function(response) {
+                if (response.success) {
+                    // Actualizar la interfaz
+                    const row = button.closest('tr');
+                    if (response.is_hidden) {
+                        row.addClass('table-secondary text-muted');
+                        button.removeClass('btn-outline-secondary').addClass('btn-outline-success');
+                        button.html('<i class="bi bi-eye"></i> Mostrar');
+                        button.attr('title', 'Mostrar en el historial');
+                        // Actualizar el badge
+                        row.find('.badge')
+                            .removeClass('bg-primary')
+                            .addClass('bg-secondary');
+                    } else {
+                        row.removeClass('table-secondary text-muted');
+                        button.removeClass('btn-outline-success').addClass('btn-outline-secondary');
+                        button.html('<i class="bi bi-eye-slash"></i> Ocultar');
+                        button.attr('title', 'Ocultar del historial');
+                        // Actualizar el badge
+                        row.find('.badge')
+                            .removeClass('bg-secondary')
+                            .addClass('bg-primary');
+                    }
+                    
+                    // Recargar la tabla para actualizar el orden
+                    table.draw();
+                    
+                    // Mostrar notificación
+                    const toast = new bootstrap.Toast($('#toast'));
+                    $('.toast-body').text(response.message);
+                    toast.show();
+                }
+            },
+            error: function(xhr) {
+                const error = xhr.responseJSON?.error || 'Error al actualizar la visibilidad del mensaje';
+                alert(error);
+            }
+        });
+    });
+
+    // Manejar el clic en el botón de recuperar todos
+    $('#restoreAllBtn').on('click', function() {
+        if (confirm('¿Estás seguro de que deseas recuperar todos los mensajes ocultos?')) {
+            $.ajax({
+                url: '/admin/message/restore-all',
+                method: 'POST',
+                success: function(response) {
+                    if (response.success) {
+                        // Recargar la página para mostrar los cambios
+                        window.location.reload();
+                    }
+                },
+                error: function(xhr) {
+                    const error = xhr.responseJSON?.error || 'Error al recuperar los mensajes';
+                    alert(error);
+                }
+            });
+        }
+    });
+});
+</script>
+
+<!-- Toast para notificaciones -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div id="toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <strong class="me-auto">Sistema</strong>
+            <small>Ahora</small>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+        </div>
+        <div class="toast-body"></div>
+    </div>
+</div>
+{% endblock %}
